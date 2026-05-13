@@ -174,8 +174,29 @@ function initFirebase() {
         console.info('[ZETASPORTS] Firestore news empty — keeping mock data.');
       }
     }, err => console.warn('[ZETASPORTS] News listener error:', err));
+    
+    db.collection('settings').doc('app_config').onSnapshot(doc => {
+      if (doc.exists) {
+        S.config = doc.data();
+        updateWebBranding();
+        refresh();
+      }
+    });
+
     setupFCM();
   } catch (e) { console.warn('[ZETASPORTS] Firebase error — running on mock data.', e); }
+}
+
+function updateWebBranding() {
+  const c = S.config;
+  if (!c) return;
+  if (c.logoUrl) {
+    const logo = document.getElementById('header-logo');
+    if (logo) logo.innerHTML = `<img src="${c.logoUrl}" style="height:32px;object-fit:contain">`;
+  }
+  if (c.primaryColor) {
+    document.documentElement.style.setProperty('--accent', c.primaryColor);
+  }
 }
 
 function setupFCM() {
@@ -370,7 +391,25 @@ function showHome() {
 
     <div class="section-header" style="margin-top:16px;"><h2>Latest News</h2></div>
     <div class="news-row">${S.news.slice(0,5).map(newsCardSm).join('')}</div>
+    
+    ${communityBanner()}
+
     <div style="height:12px"></div>
+  `;
+}
+
+function communityBanner() {
+  const c = S.config;
+  if (!c || (!c.whatsappUrl && !c.telegramUrl)) return '';
+  return `
+    <div class="community-banner">
+      <div class="cb-title">📢 Join our official Community</div>
+      <div class="cb-sub">Get daily match updates and VIP tips directly on your phone!</div>
+      <div class="cb-btns">
+        ${c.whatsappUrl ? `<a href="${c.whatsappUrl}" target="_blank" class="cb-btn wa">Join WhatsApp</a>` : ''}
+        ${c.telegramUrl ? `<a href="${c.telegramUrl}" target="_blank" class="cb-btn tg">Join Telegram</a>` : ''}
+      </div>
+    </div>
   `;
 }
 
@@ -560,6 +599,7 @@ function showDetail(id) {
         ${enabledServers.length ? enabledServers.map((s,i)=>serverBtn(s,i,m.id)).join('') : '<div class="no-servers">No streams available for this match.</div>'}
       </div>
     </div>
+    ${communityBanner()}
   `;
   // Start countdown if upcoming
   if (m.status === 'upcoming' && m.kickoffDate && m.kickoffIST) {

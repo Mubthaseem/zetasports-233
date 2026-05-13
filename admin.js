@@ -8,7 +8,7 @@ const LEAGUES_MAP = {
 
 const GEMINI_API_KEY = ''; // User can set this in their browser console or code
 
-const PAGES = ['dashboard','matches','news','leagues','notifications'];
+const PAGES = ['dashboard','matches','news','leagues','notifications','settings'];
 
 let db = null;
 let allMatches = [], allNews = [], allLeagues = [], allTokens = [];
@@ -71,7 +71,19 @@ function initFirebase() {
     listenNews();
     listenLeagues();
     listenTokens();
+    listenSettings();
   } catch(e) { showToast('Firebase error: ' + e.message, 'error'); }
+}
+
+let appSettings = null;
+function listenSettings() {
+  db.collection('settings').doc('app_config').onSnapshot(doc => {
+    if (doc.exists) {
+      appSettings = doc.data();
+      if (currentPage === 'settings') renderSettings();
+      updateWebsiteBranding();
+    }
+  });
 }
 
 function listenMatches() {
@@ -117,6 +129,7 @@ function goPage(page) {
     el.classList.toggle('active', PAGES[i]===page);
   });
   if (page==='notifications') renderNotifPage();
+  if (page==='settings') renderSettings();
 }
 
 /* ── DASHBOARD ── */
@@ -797,5 +810,87 @@ async function generateAIPreview() {
   } finally {
     btn.textContent = oldTxt;
     btn.disabled = false;
+  }
+}
+
+/* ── SETTINGS ── */
+function renderSettings() {
+  if (!appSettings) return;
+  document.getElementById('s-appName').value = appSettings.appName || 'ZETASPORTS';
+  document.getElementById('s-logoUrl').value = appSettings.logoUrl || '';
+  document.getElementById('s-loadingLogo').value = appSettings.loadingLogo || '';
+  document.getElementById('s-primaryColor').value = appSettings.primaryColor || '#2979ff';
+  document.getElementById('s-primaryColorText').value = appSettings.primaryColor || '#2979ff';
+  document.getElementById('s-accentColor').value = appSettings.accentColor || '#82b1ff';
+  document.getElementById('s-accentColorText').value = appSettings.accentColor || '#82b1ff';
+  
+  document.getElementById('s-announcement').value = appSettings.announcement || '';
+  document.getElementById('s-whatsappUrl').value = appSettings.whatsappUrl || '';
+  document.getElementById('s-telegramUrl').value = appSettings.telegramUrl || '';
+  document.getElementById('s-maintenanceMode').checked = !!appSettings.maintenanceMode;
+  document.getElementById('s-minVersion').value = appSettings.minVersion || '1.0.0';
+  document.getElementById('s-updateUrl').value = appSettings.updateUrl || '';
+
+  previewSettingsLogo('logo');
+  previewSettingsLogo('loading');
+}
+
+function previewSettingsLogo(type) {
+  const url = document.getElementById(type === 'logo' ? 's-logoUrl' : 's-loadingLogo').value.trim();
+  const box = document.getElementById(type === 'logo' ? 'preview-logo' : 'preview-loading');
+  const img = document.getElementById(type === 'logo' ? 'img-logo' : 'img-loading');
+  if (url) {
+    img.src = url;
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+// Add event listeners for live preview
+document.getElementById('s-logoUrl').addEventListener('input', () => previewSettingsLogo('logo'));
+document.getElementById('s-loadingLogo').addEventListener('input', () => previewSettingsLogo('loading'));
+document.getElementById('s-primaryColor').addEventListener('input', (e) => {
+  document.getElementById('s-primaryColorText').value = e.target.value;
+});
+document.getElementById('s-accentColor').addEventListener('input', (e) => {
+  document.getElementById('s-accentColorText').value = e.target.value;
+});
+
+async function saveAppSettings() {
+  const data = {
+    appName: document.getElementById('s-appName').value.trim(),
+    logoUrl: document.getElementById('s-logoUrl').value.trim(),
+    loadingLogo: document.getElementById('s-loadingLogo').value.trim(),
+    primaryColor: document.getElementById('s-primaryColor').value,
+    accentColor: document.getElementById('s-accentColor').value,
+    announcement: document.getElementById('s-announcement').value.trim(),
+    whatsappUrl: document.getElementById('s-whatsappUrl').value.trim(),
+    telegramUrl: document.getElementById('s-telegramUrl').value.trim(),
+    maintenanceMode: document.getElementById('s-maintenanceMode').checked,
+    minVersion: document.getElementById('s-minVersion').value.trim() || '1.0.0',
+    updateUrl: document.getElementById('s-updateUrl').value.trim(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    await db.collection('settings').doc('app_config').set(data, { merge: true });
+    showToast('App Configuration Saved! ✓', 'success');
+  } catch (e) {
+    showToast('Error saving settings: ' + e.message, 'error');
+  }
+}
+
+function updateWebsiteBranding() {
+  if (!appSettings) return;
+  // Update website header logo if it exists
+  const logoImg = document.querySelector('.logo-img'); // Assuming web app has this class
+  if (logoImg && appSettings.logoUrl) {
+    logoImg.src = appSettings.logoUrl;
+  }
+  
+  // Update CSS variables for the web app
+  if (appSettings.primaryColor) {
+    document.documentElement.style.setProperty('--acc', appSettings.primaryColor);
   }
 }

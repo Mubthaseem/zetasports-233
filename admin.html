@@ -160,6 +160,7 @@ tr:hover td{background:rgba(41,121,255,.04)}
       <div class="sb-item" onclick="goPage('news')"><span class="ico">📰</span><span>News</span></div>
       <div class="sb-item" onclick="goPage('leagues')"><span class="ico">🏆</span><span>Leagues</span></div>
       <div class="sb-item" onclick="goPage('notifications')"><span class="ico">🔔</span><span>Notifications</span></div>
+      <div class="sb-item" onclick="goPage('settings')"><span class="ico">⚙️</span><span>App Settings</span></div>
     </nav>
     <div class="sb-logout"><button onclick="logout()">🚪 Logout</button></div>
   </div>
@@ -230,6 +231,94 @@ tr:hover td{background:rgba(41,121,255,.04)}
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
           <div style="font-size:12px;color:#90caf9;font-weight:600;margin-bottom:10px">RECENT SUBSCRIBERS</div>
           <div id="tokens-table"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- APP SETTINGS -->
+    <div id="page-settings" style="display:none">
+      <div class="page-hdr"><h1 class="page-title">App Customization</h1></div>
+      <div class="table-wrap" style="padding:22px; max-width: 600px;">
+        <div style="font-size:13px;font-weight:700;color:var(--acc2);margin-bottom:16px">🎨 Branding & Identity</div>
+        
+        <div class="form-group">
+          <label class="form-label">App Name</label>
+          <input class="form-input" id="s-appName" placeholder="ZETASPORTS"/>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Header Logo URL (PNG/SVG preferred)</label>
+          <input class="form-input" id="s-logoUrl" placeholder="https://..."/>
+          <div id="preview-logo" style="margin-top:10px; padding:10px; background:var(--bg2); border-radius:10px; display:none; text-align:center;">
+             <img id="img-logo" src="" style="max-height:40px;"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Splash Screen / Loading Logo URL</label>
+          <input class="form-input" id="s-loadingLogo" placeholder="https://..."/>
+          <div id="preview-loading" style="margin-top:10px; padding:20px; background:var(--bg2); border-radius:10px; display:none; text-align:center;">
+             <img id="img-loading" src="" style="max-height:80px;"/>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Primary Brand Color</label>
+            <div style="display:flex; gap:10px;">
+               <input class="form-input" id="s-primaryColor" type="color" value="#2979ff" style="width:60px; padding:2px; height:40px;"/>
+               <input class="form-input" id="s-primaryColorText" placeholder="#2979ff"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Accent Color</label>
+            <div style="display:flex; gap:10px;">
+               <input class="form-input" id="s-accentColor" type="color" value="#82b1ff" style="width:60px; padding:2px; height:40px;"/>
+               <input class="form-input" id="s-accentColorText" placeholder="#82b1ff"/>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size:13px;font-weight:700;color:var(--acc2);margin-top:24px;margin-bottom:16px">📢 Announcements & Support</div>
+        
+        <div class="form-group">
+          <label class="form-label">Global Announcement Message (Marquee)</label>
+          <input class="form-input" id="s-announcement" placeholder="e.g. Join our Telegram for free VIP tips!"/>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">WhatsApp Group URL</label>
+            <input class="form-input" id="s-whatsappUrl" placeholder="https://chat.whatsapp.com/..."/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telegram Channel URL</label>
+            <input class="form-input" id="s-telegramUrl" placeholder="https://t.me/yourchannel"/>
+          </div>
+        </div>
+
+        <div style="font-size:13px;font-weight:700;color:var(--acc2);margin-top:24px;margin-bottom:16px">🛠️ App Control & Updates</div>
+
+        <div class="form-group">
+          <label class="form-check">
+            <input type="checkbox" id="s-maintenanceMode"/> 
+            <span>Enable Maintenance Mode (Locks the app)</span>
+          </label>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Minimum App Version</label>
+            <input class="form-input" id="s-minVersion" placeholder="1.0.0"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Update APK Link</label>
+            <input class="form-input" id="s-updateUrl" placeholder="https://..."/>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <button class="btn btn-primary" onclick="saveAppSettings()">💾 Save All Settings</button>
         </div>
       </div>
     </div>

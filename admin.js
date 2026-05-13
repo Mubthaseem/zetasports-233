@@ -160,12 +160,6 @@ function renderDashboard() {
     </tr>`).join('');
 }
 
-function statusBadge(status, minute) {
-  if (status === 'live') return `<span class="badge badge-live">🔴 ${minute || ''}</span>`;
-  if (status === 'ht') return `<span class="badge badge-ht">⏸ HT</span>`;
-  if (status === 'finished') return `<span class="badge badge-finished">FT</span>`;
-  return `<span class="badge badge-upcoming">Upcoming</span>`;
-}
 
 function formatTime12(time24) {
   if(!time24) return '';

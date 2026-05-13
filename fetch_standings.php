@@ -5,7 +5,7 @@ header('Content-Type: application/json');
 
 // YOUR FOOTBALL-DATA.ORG API KEY
 // Get one for free at: https://www.football-data.org/
-$apiToken = 'YOUR_API_KEY_HERE';
+$apiToken = '30a2305839ef4d86b3771b360d97b669';
 
 // Top 5 Leagues Codes in football-data.org
 $leagues = ['PL', 'PD', 'SA', 'BL1', 'FL1'];

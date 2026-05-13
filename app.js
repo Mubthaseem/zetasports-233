@@ -360,7 +360,7 @@ function showHome() {
         <div class="league-section">
           <div class="league-header">
             <span class="l-emoji">${getLeague(lid).emoji}</span>
-            <h3>${getLeague(lid).name.toUpperCase()}</h3>
+            <h3>${(getLeague(lid).name || lid).toUpperCase()}</h3>
           </div>
           ${ms.map(m => matchCard(m)).join('')}
         </div>
@@ -475,7 +475,7 @@ function trendingBanner(m) {
       <div class="tb-overlay"></div>
       <div class="tb-content">
         <div class="tb-top">
-          <span class="tb-league">${getLeague(m.leagueId).name.toUpperCase()}</span>
+          <span class="tb-league">${(getLeague(m.leagueId).name || m.leagueId || '').toUpperCase()}</span>
           ${isLive ? `<span class="tb-live">● ${m.minute}</span>` : `<span class="tb-upcoming">UPCOMING</span>`}
         </div>
         <div class="tb-main">
@@ -531,8 +531,9 @@ function showDetail(id) {
   const m=getMatch(id); if(!m){go('home');return;}
   const h=getTeam(m.home), a=getTeam(m.away), l=getLeague(m.leagueId);
   const localTime = formatLocalTime(m.kickoffDate, m.kickoffIST);
-  const statusTxt=m.status==='live'?`🔴 ${m.minute}`:m.status==='ht'?'⏸ Half Time':m.status==='finished'?'⏹ Full Time':`⏰ ${localTime}`;
-  const scoreDisp=m.status==='upcoming'?`<span style="color:var(--text3)">–</span>&nbsp;:&nbsp;<span style="color:var(--text3)">–</span>`:`${m.homeScore}&nbsp;:&nbsp;${m.awayScore}`;
+  const statusCls = m.status === 'live' ? 'live' : m.status === 'ht' ? 'ht' : m.status === 'finished' ? 'finished' : 'upcoming';
+  const statusTxt = m.status === 'live' ? `🔴 ${m.minute}` : m.status === 'ht' ? '⏸ Half Time' : m.status === 'finished' ? '⏹ Full Time' : `⏰ ${localTime}`;
+  const scoreDisp = m.status === 'upcoming' ? `<span style="color:var(--text3)">–</span>&nbsp;:&nbsp;<span style="color:var(--text3)">–</span>` : `${m.homeScore}&nbsp;:&nbsp;${m.awayScore}`;
   // Only show enabled servers (enabled !== false)
   const enabledServers = (m.servers||[]).filter(s => s.enabled !== false);
   document.getElementById('screen-detail').innerHTML = `

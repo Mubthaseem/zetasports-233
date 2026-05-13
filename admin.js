@@ -169,6 +169,7 @@ function renderDashboard() {
       <td>${statusBadge(m.status,m.minute)}</td>
       <td>
         <button class="btn btn-sm btn-edit" onclick="goPage('matches');openMatchModal('${m.id}')">Edit</button>
+        <button class="btn btn-sm" style="background:#ffc107;color:#000;margin-left:4px" onclick="prepareQuickNotification('${m.id}')">🔔</button>
       </td>
     </tr>`).join('');
 }
@@ -217,6 +218,7 @@ function renderMatchTable() {
       <td style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-sm btn-edit" onclick="openMatchModal('${m.id}')">✏️ Edit</button>
         <button class="btn btn-sm btn-danger" onclick="deleteMatch('${m.id}','${(m.homeTeam||m.home)+' vs '+(m.awayTeam||m.away)}')">🗑</button>
+        <button class="btn btn-sm" style="background:#ffc107;color:#000" onclick="prepareQuickNotification('${m.id}')">🔔</button>
       </td>
     </tr>`).join('')
     : '<tr><td colspan="8" class="empty-state">No matches yet. Click "+ Add Match" to get started.</td></tr>';
@@ -675,6 +677,21 @@ async function deleteToken(id) {
   if(!confirm('Remove this subscriber token?')) return;
   try{ await db.collection('fcm_tokens').doc(id).delete(); showToast('Removed','success'); }
   catch(e){ showToast('Error: '+e.message,'error'); }
+}
+
+async function prepareQuickNotification(id) {
+  const m = allMatches.find(x => x.id === id);
+  if (!m) return;
+  
+  goPage('notifications');
+  
+  // Wait a tiny bit for the page to switch
+  setTimeout(() => {
+    document.getElementById('n-ntitle').value = `🚨 Match Alert: ${m.homeTeam} vs ${m.awayTeam}`;
+    document.getElementById('n-nbody').value = `Live stream for ${m.homeTeam} vs ${m.awayTeam} is now available! Tap to watch.`;
+    document.getElementById('n-nurl').value = m.homeLogo || m.awayLogo || '';
+    showToast('Match details loaded into notification form', 'info');
+  }, 100);
 }
 
 async function sendPushNotification() {

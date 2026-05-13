@@ -125,6 +125,11 @@ function crest(code, size=38, logoUrl=null) {
 }
 
 function statusBadge(m) {
+  if (m.sport === 'cricket') {
+    if (m.status==='live') return `<span class="mc-status live" style="background:var(--gold);color:#000">🏏 LIVE</span>`;
+    if (m.status==='finished') return `<span class="mc-status ft">⏹ FINISHED</span>`;
+    return `<span class="mc-status upcoming">${formatTime12(m.kickoffIST)}</span>`;
+  }
   if (m.status==='live')     return `<span class="mc-status live">🔴 ${m.minute}</span>`;
   if (m.status==='ht')       return `<span class="mc-status ht">⏸ HT</span>`;
   if (m.status==='finished') return `<span class="mc-status ft">FT</span>`;
@@ -133,6 +138,9 @@ function statusBadge(m) {
 
 function scoreCenter(m) {
   if (m.status==='upcoming') return `<div class="mc-vs">VS</div><div class="mc-time">${formatTime12(m.kickoffIST)}</div>`;
+  if (m.sport === 'cricket') {
+    return `<div class="mc-score" style="font-size:14px;letter-spacing:1px">${m.homeCricketScore || '0/0'}&nbsp;–&nbsp;${m.awayCricketScore || '0/0'}</div><div style="font-size:10px;color:var(--text3);margin-top:2px">${m.cricketInfo || ''}</div>`;
+  }
   return `<div class="mc-score">${m.homeScore ?? '-'}&nbsp;–&nbsp;${m.awayScore ?? '-'}</div>`;
 }
 
@@ -183,8 +191,19 @@ function initFirebase() {
       }
     });
 
+    recordVisit();
     setupFCM();
   } catch (e) { console.warn('[ZETASPORTS] Firebase error — running on mock data.', e); }
+}
+
+async function recordVisit() {
+  if (!db) return;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const docRef = db.collection('analytics').doc(today);
+    await docRef.set({ visits: firebase.firestore.FieldValue.increment(1) }, { merge: true });
+    console.info('[ZETASPORTS] Web visit recorded.');
+  } catch (e) { console.warn('[ZETASPORTS] Analytics error:', e); }
 }
 
 function updateHeader(liveCount) {
@@ -432,10 +451,19 @@ function communityBanner() {
 function featuredBanner(m) {
   const h=getTeam(m.home), a=getTeam(m.away), l=getLeague(m.leagueId);
   const localTime = formatLocalTime(m.kickoffDate, m.kickoffIST);
+  const isCricket = m.sport === 'cricket';
   const scoreHtml = m.status==='upcoming'
     ? `<div style="font-size:20px;font-weight:700;color:var(--accent);font-family:'Rajdhani',sans-serif">${localTime}</div>`
-    : `<div class="banner-score">${m.homeScore}<span class="banner-score-sep">–</span>${m.awayScore}</div>`;
-  const badge = m.status==='live' ? `<span class="banner-live-dot"></span>🔴 ${m.minute}` : m.status==='ht' ? '⏸ HALF TIME' : 'UPCOMING';
+    : (isCricket 
+        ? `<div class="banner-score" style="font-size:24px">${m.homeCricketScore || '0/0'}<span class="banner-score-sep">–</span>${m.awayCricketScore || '0/0'}</div>`
+        : `<div class="banner-score">${m.homeScore}<span class="banner-score-sep">–</span>${m.awayScore}</div>`
+      );
+  const badge = isCricket 
+    ? (m.status === 'live' ? `<span class="banner-live-dot" style="background:var(--gold)"></span>🏏 LIVE` : 'COMPLETED')
+    : (m.status==='live' ? `<span class="banner-live-dot"></span>🔴 ${m.minute}` : m.status==='ht' ? '⏸ HALF TIME' : 'UPCOMING');
+  
+  const subInfo = isCricket && m.status === 'live' ? m.cricketInfo : (m.status==='ht'?'Half Time':m.minute);
+
   return `
   <div class="featured-banner" onclick="go('detail',{id:'${m.id}'})">
     <div class="banner-glow"></div>
@@ -445,7 +473,7 @@ function featuredBanner(m) {
     </div>
     <div class="banner-body">
       <div class="banner-team left">${crest(m.home,58,m.homeLogo)}<div class="banner-team-name">${h.name}</div></div>
-      <div class="banner-center">${scoreHtml}${m.status!=='upcoming'?`<div class="banner-minute">${m.status==='ht'?'Half Time':m.minute}</div>`:''}</div>
+      <div class="banner-center">${scoreHtml}${m.status!=='upcoming'?`<div class="banner-minute">${subInfo || ''}</div>`:''}</div>
       <div class="banner-team right">${crest(m.away,58,m.awayLogo)}<div class="banner-team-name">${a.name}</div></div>
     </div>
     <div class="banner-footer">
@@ -457,10 +485,13 @@ function featuredBanner(m) {
 
 function liveCard(m) {
   const h=getTeam(m.home), a=getTeam(m.away), l=getLeague(m.leagueId);
+  const isCricket = m.sport === 'cricket';
+  const score = isCricket ? `${m.homeCricketScore || '0/0'} – ${m.awayCricketScore || '0/0'}` : `${m.homeScore} – ${m.awayScore}`;
+  const badge = isCricket ? '🏏 LIVE' : (m.status==='ht'?'HT':m.minute);
   return `<div class="live-mini-card" onclick="go('detail',{id:'${m.id}'})">
-    <div class="lmc-badge"><span class="live-dot-sm"></span>&nbsp;${m.status==='ht'?'HT':m.minute}</div>
+    <div class="lmc-badge" style="${isCricket?'color:var(--gold)':''}"><span class="live-dot-sm" style="${isCricket?'background:var(--gold)':''}"></span>&nbsp;${badge}</div>
     <div class="lmc-teams">${h.name} vs ${a.name}</div>
-    <div class="lmc-score">${m.homeScore} – ${m.awayScore}</div>
+    <div class="lmc-score" style="${isCricket?'font-size:12px':''}">${score}</div>
     <div class="lmc-league">${l.emoji} ${l.name}</div>
   </div>`;
 }
@@ -531,7 +562,10 @@ function trendingBanner(m) {
       <div class="tb-content">
         <div class="tb-top">
           <span class="tb-league">${(getLeague(m.leagueId).name || m.leagueId || '').toUpperCase()}</span>
-          ${isLive ? `<span class="tb-live">● ${m.minute}</span>` : `<span class="tb-upcoming">UPCOMING</span>`}
+          ${m.sport === 'cricket' 
+            ? (isLive ? `<span class="tb-live" style="color:var(--gold)">🏏 LIVE</span>` : `<span class="tb-upcoming">UPCOMING</span>`)
+            : (isLive ? `<span class="tb-live">● ${m.minute}</span>` : `<span class="tb-upcoming">UPCOMING</span>`)
+          }
         </div>
         <div class="tb-main">
           <div class="tb-team">
@@ -539,8 +573,12 @@ function trendingBanner(m) {
             <span class="tb-team-name">${getDisplayName(m.homeTeam, m.home)}</span>
           </div>
           <div class="tb-center">
-            ${m.status === 'upcoming' ? `<div class="tb-vs">VS</div>` : `<div class="tb-score">${m.homeScore} - ${m.awayScore}</div>`}
-            <div class="tb-time">${formatLocalTime(m.kickoffDate, m.kickoffIST)}</div>
+            ${m.status === 'upcoming' ? `<div class="tb-vs">VS</div>` : 
+              (m.sport === 'cricket' 
+                ? `<div class="tb-score" style="font-size:18px">${m.homeCricketScore || '0/0'} - ${m.awayCricketScore || '0/0'}</div>`
+                : `<div class="tb-score">${m.homeScore} - ${m.awayScore}</div>`)
+            }
+            <div class="tb-time">${m.sport === 'cricket' && isLive ? m.cricketInfo : formatLocalTime(m.kickoffDate, m.kickoffIST)}</div>
           </div>
           <div class="tb-team">
             <div class="tb-crest-wrap">${crest(m.away, 48, m.awayLogo)}</div>
@@ -559,8 +597,17 @@ function trendingBanner(m) {
 function matchCard(m, compact=false) {
   const h=getTeam(m.home), a=getTeam(m.away);
   const isLive=m.status==='live'||m.status==='ht';
-  const scoreHtml = m.status==='upcoming' ? `<div class="match-time">${formatLocalTime(m.kickoffDate, m.kickoffIST)}</div>` : `<div class="match-score">${m.homeScore ?? '0'} – ${m.awayScore ?? '0'}</div>`;
-  const statusHtml = isLive ? `<div class="match-time live">● LIVE ${m.minute}</div>` : m.status==='upcoming' ? '' : `<div class="match-time">FINISHED</div>`;
+  const isCricket=m.sport==='cricket';
+  
+  const scoreHtml = m.status==='upcoming' 
+    ? `<div class="match-time">${formatLocalTime(m.kickoffDate, m.kickoffIST)}</div>` 
+    : (isCricket 
+        ? `<div class="match-score" style="font-size:11px">${m.homeCricketScore || '0/0'} – ${m.awayCricketScore || '0/0'}</div>`
+        : `<div class="match-score">${m.homeScore ?? '0'} – ${m.awayScore ?? '0'}</div>`);
+  
+  const statusHtml = isCricket 
+    ? (isLive ? `<div class="match-time live" style="color:var(--gold)">🏏 LIVE · ${m.cricketInfo || ''}</div>` : m.status==='upcoming' ? '' : `<div class="match-time">FINISHED</div>`)
+    : (isLive ? `<div class="match-time live">● LIVE ${m.minute}</div>` : m.status==='upcoming' ? '' : `<div class="match-time">FINISHED</div>`);
   
   return `<div class="match-card ${compact?'compact':''}" onclick="go('detail',{id:'${m.id}'}); event.stopPropagation();">
     <div class="match-team home">
@@ -585,10 +632,18 @@ function clearLeagueFilter() { S.leagueFilter=null; showMatches(); }
 function showDetail(id) {
   const m=getMatch(id); if(!m){go('home');return;}
   const h=getTeam(m.home), a=getTeam(m.away), l=getLeague(m.leagueId);
+  const isCricket = m.sport === 'cricket';
   const localTime = formatLocalTime(m.kickoffDate, m.kickoffIST);
   const statusCls = m.status === 'live' ? 'live' : m.status === 'ht' ? 'ht' : m.status === 'finished' ? 'finished' : 'upcoming';
-  const statusTxt = m.status === 'live' ? `🔴 ${m.minute}` : m.status === 'ht' ? '⏸ Half Time' : m.status === 'finished' ? '⏹ Full Time' : `⏰ ${localTime}`;
-  const scoreDisp = m.status === 'upcoming' ? `<span style="color:var(--text3)">–</span>&nbsp;:&nbsp;<span style="color:var(--text3)">–</span>` : `${m.homeScore}&nbsp;:&nbsp;${m.awayScore}`;
+  
+  const statusTxt = isCricket 
+    ? (m.status === 'live' ? `🏏 LIVE · ${m.cricketInfo || ''}` : m.status === 'finished' ? '⏹ COMPLETED' : `⏰ ${localTime}`)
+    : (m.status === 'live' ? `🔴 ${m.minute}` : m.status === 'ht' ? '⏸ Half Time' : m.status === 'finished' ? '⏹ Full Time' : `⏰ ${localTime}`);
+  
+  const scoreDisp = m.status === 'upcoming' 
+    ? `<span style="color:var(--text3)">–</span>&nbsp;:&nbsp;<span style="color:var(--text3)">–</span>` 
+    : (isCricket ? `${m.homeCricketScore || '0/0'}&nbsp;:&nbsp;${m.awayCricketScore || '0/0'}` : `${m.homeScore}&nbsp;:&nbsp;${m.awayScore}`);
+
   // Only show enabled servers (enabled !== false)
   const enabledServers = (m.servers||[]).filter(s => s.enabled !== false);
   document.getElementById('screen-detail').innerHTML = `
@@ -597,7 +652,7 @@ function showDetail(id) {
       <div class="dh-league">${l.emoji} ${l.name}</div>
       <div class="dh-teams">
         <div class="dh-team">${crest(m.home,64,m.homeLogo)}<div class="dh-name">${h.name}</div></div>
-        <div class="dh-score-box"><div class="dh-score">${scoreDisp}</div><div class="dh-status ${statusCls}">${statusTxt}</div></div>
+        <div class="dh-score-box"><div class="dh-score" style="${isCricket?'font-size:28px':''}">${scoreDisp}</div><div class="dh-status ${statusCls}" style="${isCricket && m.status==='live'?'color:var(--gold)':''}">${statusTxt}</div></div>
         <div class="dh-team">${crest(m.away,64,m.awayLogo)}<div class="dh-name">${a.name}</div></div>
       </div>
     </div>

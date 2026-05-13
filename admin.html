@@ -196,6 +196,7 @@ input:checked + .slider:before{transform:translateX(20px);background:var(--acc)}
       <div class="page-hdr">
         <h1 class="page-title">Matches</h1>
         <div style="display:flex;gap:10px;">
+          <button class="btn btn-sm" onclick="syncAllCricketMatches()" style="background:var(--gold);color:#000">🏏 Sync Cricket</button>
           <button class="btn btn-edit" onclick="openFetchModal()">⚡ Auto-Fetch</button>
           <button class="btn btn-primary" onclick="openMatchModal()">+ Add Match</button>
         </div>

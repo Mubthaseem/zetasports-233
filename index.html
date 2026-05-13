@@ -82,74 +82,76 @@
   @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
   </style>
 
-  <header class="app-header" id="app-header">
-    <div class="header-inner">
-      <button class="back-btn hidden" id="back-btn" aria-label="Go Back">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 12H5M12 5l-7 7 7 7"/>
-        </svg>
-      </button>
-      <div class="header-logo" id="header-logo">
-        <div class="logo-box">ZS</div>
-        <span class="logo-text">ZETA<span class="logo-accent">SPORTS</span></span>
-      </div>
-      <div class="header-title hidden" id="header-title">Match Details</div>
-      <div class="header-actions">
-        <div class="counter-item">
-          <script type="text/javascript" src="//widget.supercounters.com/ssl/online_i.js"></script>
-          <script type="text/javascript">sc_online_i(1734305,"000000","FFD700");</script>
+  <div class="app-container">
+    <header class="app-header" id="app-header">
+      <div class="header-inner">
+        <button class="back-btn hidden" id="back-btn" aria-label="Go Back">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 5l-7 7 7 7"/>
+          </svg>
+        </button>
+        <div class="header-logo" id="header-logo">
+          <div class="logo-box">ZS</div>
+          <span class="logo-text">ZETA<span class="logo-accent">SPORTS</span></span>
         </div>
-        <div class="live-pill-header" id="live-pill">
-          <span class="live-dot-pulse"></span>
-          <span id="live-count-val">0</span> MATCHES LIVE
+        <div class="header-title hidden" id="header-title">Match Details</div>
+        <div class="header-actions">
+          <div class="counter-item">
+            <script type="text/javascript" src="//widget.supercounters.com/ssl/online_i.js"></script>
+            <script type="text/javascript">sc_online_i(1734305,"000000","FFD700");</script>
+          </div>
+          <div class="live-pill-header" id="live-pill">
+            <span class="live-dot-pulse"></span>
+            <span id="live-count-val">0</span> MATCHES LIVE
+          </div>
         </div>
       </div>
+    </header>
+
+    <!-- Screens Wrapper -->
+    <div class="screens-wrapper" id="screens-wrapper">
+      <div class="screen active" id="screen-home"></div>
+      <div class="screen" id="screen-matches"></div>
+      <div class="screen" id="screen-detail"></div>
+      <div class="screen" id="screen-news"></div>
+      <div class="screen" id="screen-standings"></div>
+      <div class="screen" id="screen-leagues"></div>
     </div>
-  </header>
 
-  <!-- Screens Wrapper -->
-  <div class="screens-wrapper" id="screens-wrapper">
-    <div class="screen active" id="screen-home"></div>
-    <div class="screen" id="screen-matches"></div>
-    <div class="screen" id="screen-detail"></div>
-    <div class="screen" id="screen-news"></div>
-    <div class="screen" id="screen-standings"></div>
-    <div class="screen" id="screen-leagues"></div>
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="nav-item active" data-screen="home" id="nav-home" aria-label="Home">
+        <svg class="nav-svg" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+        </svg>
+        <span class="nav-label">Home</span>
+      </button>
+      <button class="nav-item" data-screen="matches" id="nav-matches" aria-label="Matches">
+        <svg class="nav-svg" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-4H9l3-3 3 3h-2v4z"/>
+        </svg>
+        <span class="nav-label">Matches</span>
+      </button>
+      <button class="nav-item" data-screen="news" id="nav-news" aria-label="News">
+        <svg class="nav-svg" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/>
+        </svg>
+        <span class="nav-label">News</span>
+      </button>
+      <button class="nav-item" data-screen="standings" id="nav-standings" aria-label="Standings">
+        <svg class="nav-svg" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h5v2h2v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-5V1h-2v2zm0 16H5V5h5v14zm7 0h-5V5h5v14z"/>
+        </svg>
+        <span class="nav-label">Tables</span>
+      </button>
+      <button class="nav-item" data-screen="leagues" id="nav-leagues" aria-label="Leagues">
+        <svg class="nav-svg" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
+        </svg>
+        <span class="nav-label">Leagues</span>
+      </button>
+    </nav>
   </div>
-
-  <!-- Bottom Navigation -->
-  <nav class="bottom-nav" id="bottom-nav">
-    <button class="nav-item active" data-screen="home" id="nav-home" aria-label="Home">
-      <svg class="nav-svg" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-      </svg>
-      <span class="nav-label">Home</span>
-    </button>
-    <button class="nav-item" data-screen="matches" id="nav-matches" aria-label="Matches">
-      <svg class="nav-svg" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-4H9l3-3 3 3h-2v4z"/>
-      </svg>
-      <span class="nav-label">Matches</span>
-    </button>
-    <button class="nav-item" data-screen="news" id="nav-news" aria-label="News">
-      <svg class="nav-svg" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/>
-      </svg>
-      <span class="nav-label">News</span>
-    </button>
-    <button class="nav-item" data-screen="standings" id="nav-standings" aria-label="Standings">
-      <svg class="nav-svg" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h5v2h2v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-5V1h-2v2zm0 16H5V5h5v14zm7 0h-5V5h5v14z"/>
-      </svg>
-      <span class="nav-label">Tables</span>
-    </button>
-    <button class="nav-item" data-screen="leagues" id="nav-leagues" aria-label="Leagues">
-      <svg class="nav-svg" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
-      </svg>
-      <span class="nav-label">Leagues</span>
-    </button>
-  </nav>
 
   <!-- HLS.js for M3U8 stream playback -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>

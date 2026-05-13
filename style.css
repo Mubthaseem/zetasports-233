@@ -323,15 +323,7 @@ img{display:block;max-width:100%}
 }
 .match-time.live { color: var(--red); }
 
-/* ── Navigation ────────────────────────────────────────────── */
-.app-nav {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 500px;
-  height: var(--nav-h);
-  background: var(--bg2);
-  border-top: 1px solid var(--border);
-  display: flex;
-  z-index: 100;
-}
+/* ── Navigation Items ────────────────────────────────────────── */
 .nav-item {
   flex: 1;
   display: flex;
@@ -421,25 +413,32 @@ iframe { width: 100%; height: 100%; border: none; }
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 /* ── Bottom Nav ─────────────────────────────────────────────── */
-.bottom-nav{
-  position:fixed;bottom:0;left:0;right:0;z-index:100;
-  height:var(--nav-h);
-  display:flex;
-  background:rgba(6,14,6,.96);
-  backdrop-filter:blur(16px);
-  border-top:1px solid var(--border);
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: var(--nav-h);
+  display: flex;
+  background: rgba(13, 17, 23, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   transition: all 0.3s ease;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 @media (min-width: 768px) {
   .bottom-nav {
-    max-width: 400px;
+    max-width: 540px;
     left: 50%;
     transform: translateX(-50%);
     bottom: 20px;
-    border-radius: 30px;
-    border: 1px solid var(--border2);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    height: 64px;
   }
 }
 .nav-item{

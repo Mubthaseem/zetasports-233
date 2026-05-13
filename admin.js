@@ -72,10 +72,23 @@ function initFirebase() {
     listenLeagues();
     listenTokens();
     listenSettings();
+    listenAnalytics();
   } catch(e) { showToast('Firebase error: ' + e.message, 'error'); }
 }
 
 let appSettings = null;
+let todayVisits = 0;
+
+function listenAnalytics() {
+  const now = new Date();
+  const dateKey = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}`;
+  db.collection('analytics').doc(dateKey).onSnapshot(doc => {
+    if (doc.exists) {
+      todayVisits = doc.data().visits || 0;
+      renderDashboard();
+    }
+  });
+}
 function listenSettings() {
   db.collection('settings').doc('app_config').onSnapshot(doc => {
     if (doc.exists) {
@@ -115,8 +128,13 @@ function listenLeagues() {
 function listenTokens() {
   db.collection('fcm_tokens').onSnapshot(snap => {
     allTokens = snap.docs.map(d => ({id:d.id,...d.data()}));
-    renderNotifPage();
-  }, () => { allTokens = []; renderNotifPage(); });
+    if (currentPage === 'notifications') renderNotifPage();
+    renderDashboard();
+  }, () => { 
+    allTokens = []; 
+    if (currentPage === 'notifications') renderNotifPage();
+    renderDashboard();
+  });
 }
 
 /* ── NAVIGATION ── */
@@ -137,11 +155,18 @@ function renderDashboard() {
   const live = allMatches.filter(m=>m.status==='live'||m.status==='ht').length;
   const upcoming = allMatches.filter(m=>m.status==='upcoming').length;
   const finished = allMatches.filter(m=>m.status==='finished').length;
+  
   document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card" style="background:linear-gradient(135deg, rgba(0,230,118,0.1), rgba(0,230,118,0.02)); border:1px solid rgba(0,230,118,0.2)">
+      <div class="stat-val" style="color:#69f0ae">${todayVisits}</div>
+      <div class="stat-label">🚀 Visits Today</div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg, rgba(41,121,255,0.1), rgba(41,121,255,0.02)); border:1px solid rgba(41,121,255,0.2)">
+      <div class="stat-val" style="color:#90caf9">${allTokens.length}</div>
+      <div class="stat-label">📱 Total Users</div>
+    </div>
     <div class="stat-card"><div class="stat-val">${allMatches.length}</div><div class="stat-label">Total Matches</div></div>
     <div class="stat-card"><div class="stat-val" style="color:#ff6b6b">${live}</div><div class="stat-label">🔴 Live Now</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--acc2)">${upcoming}</div><div class="stat-label">⏰ Upcoming</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:#90caf9">${finished}</div><div class="stat-label">✅ Finished</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--gold)">${allNews.length}</div><div class="stat-label">📰 News Articles</div></div>
   `;
   const sorted = [...allMatches].sort((a,b)=>{
@@ -166,7 +191,13 @@ function renderDashboard() {
       </td>
       <td>${LEAGUES_MAP[m.leagueId]||m.leagueId||'—'}</td>
       <td>${formatTime12(m.kickoffIST)||'—'} IST</td>
-      <td>${statusBadge(m.status,m.minute)}</td>
+      <td>
+        ${m.sport === 'cricket' ? 
+          `<div style="font-size:11px;color:var(--gold)">🏏 ${m.homeCricketScore || '0/0'} - ${m.awayCricketScore || '0/0'}</div>
+           <div style="font-size:10px;color:var(--text3)">${m.cricketInfo || ''}</div>` : 
+          statusBadge(m.status, m.minute)
+        }
+      </td>
       <td>
         <button class="btn btn-sm btn-edit" onclick="goPage('matches');openMatchModal('${m.id}')">Edit</button>
         <button class="btn btn-sm" style="background:#ffc107;color:#000;margin-left:4px" onclick="prepareQuickNotification('${m.id}')">🔔</button>
@@ -339,7 +370,11 @@ function openMatchModal(id=null) {
     document.getElementById('f-minute').value = m.minute||'';
     document.getElementById('f-featured').checked = !!m.featured;
     (m.servers||[]).forEach(s=>addServerRow(s.label, s.url, s.type||'redirect', s.enabled!==false));
-    document.getElementById('f-preview').value = m.preview||'';
+    document.getElementById('f-preview').value = m.preview || '';
+    document.getElementById('f-sport').value = m.sport || 'football';
+    document.getElementById('f-homeCricketScore').value = m.homeCricketScore || '';
+    document.getElementById('f-awayCricketScore').value = m.awayCricketScore || '';
+    document.getElementById('f-cricketInfo').value = m.cricketInfo || '';
     toggleScoreFields();
   }
   openModal('match-modal');
@@ -358,8 +393,17 @@ function clearMatchForm() {
 
 function toggleScoreFields() {
   const s = document.getElementById('f-status').value;
-  document.getElementById('score-fields').style.display = s!=='upcoming' ? 'grid' : 'none';
-  document.getElementById('minute-field').style.display = s==='live' ? 'block' : 'none';
+  const sport = document.getElementById('f-sport').value;
+  
+  const isUpcoming = s === 'upcoming';
+  const isFootball = sport === 'football';
+
+  // Football fields
+  document.getElementById('score-fields').style.display = (!isUpcoming && isFootball) ? 'grid' : 'none';
+  document.getElementById('minute-field').style.display = (s === 'live' && isFootball) ? 'block' : 'none';
+
+  // Cricket fields
+  document.getElementById('cricket-score-fields').style.display = (!isUpcoming && !isFootball) ? 'block' : 'none';
 }
 
 function addServerRow(label='', url='', type='redirect', enabled=true) {
@@ -391,27 +435,35 @@ async function saveMatch() {
   }).filter(s=>s.url);
   const preview = document.getElementById('f-preview')?.value.trim()||'';
 
+  const getValue = (id) => document.getElementById(id)?.value?.trim() || '';
+  const getChecked = (id) => document.getElementById(id)?.checked || false;
+
   const data = {
-    homeTeam: document.getElementById('f-homeTeam').value.trim(),
-    awayTeam: document.getElementById('f-awayTeam').value.trim(),
-    home: document.getElementById('f-home').value.trim().toUpperCase(),
-    away: document.getElementById('f-away').value.trim().toUpperCase(),
-    homeLogo: document.getElementById('f-homeLogo').value.trim(),
-    awayLogo: document.getElementById('f-awayLogo').value.trim(),
-    leagueId: document.getElementById('f-leagueId').value,
-    leagueName: document.getElementById('f-leagueName').value.trim() || LEAGUES_MAP[document.getElementById('f-leagueId').value] || '',
+    homeTeam: getValue('f-homeTeam'),
+    awayTeam: getValue('f-awayTeam'),
+    home: getValue('f-home').toUpperCase(),
+    away: getValue('f-away').toUpperCase(),
+    homeLogo: getValue('f-homeLogo'),
+    awayLogo: getValue('f-awayLogo'),
+    leagueId: getValue('f-leagueId'),
+    leagueName: getValue('f-leagueName') || LEAGUES_MAP[getValue('f-leagueId')] || '',
+    sport: getValue('f-sport'),
     status,
-    kickoffDate: document.getElementById('f-kickoffDate').value,
-    kickoffIST: document.getElementById('f-kickoffIST').value,
-    homeScore: parseInt(document.getElementById('f-homeScore').value) || 0,
-    awayScore: parseInt(document.getElementById('f-awayScore').value) || 0,
-    minute: document.getElementById('f-minute').value.trim(),
-    featured: document.getElementById('f-featured').checked,
+    kickoffDate: getValue('f-kickoffDate'),
+    kickoffIST: getValue('f-kickoffIST'),
+    homeScore: parseInt(document.getElementById('f-homeScore')?.value) || 0,
+    awayScore: parseInt(document.getElementById('f-awayScore')?.value) || 0,
+    homeCricketScore: getValue('f-homeCricketScore'),
+    awayCricketScore: getValue('f-awayCricketScore'),
+    cricketInfo: getValue('f-cricketInfo'),
+    minute: getValue('f-minute'),
+    featured: getChecked('f-featured'),
     servers,
     preview,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
+  console.log('DEBUG: Saving Match Data:', data);
   try {
     if (editingMatchId) {
       const oldMatch = allMatches.find(m => m.id === editingMatchId);
@@ -823,12 +875,13 @@ function renderSettings() {
   document.getElementById('s-admobNativeId').value = appSettings.admobNativeId || '';
   document.getElementById('s-admobRewardedId').value = appSettings.admobRewardedId || '';
   document.getElementById('s-admobRewardedInterId').value = appSettings.admobRewardedInterId || '';
-  document.getElementById('s-adsEnabled').checked = !!appSettings.adsEnabled;
-  document.getElementById('s-adsBannerEnabled').checked = !!appSettings.adsBannerEnabled;
-  document.getElementById('s-adsInterstitialEnabled').checked = !!appSettings.adsInterstitialEnabled;
-  document.getElementById('s-adsAppOpenEnabled').checked = !!appSettings.adsAppOpenEnabled;
-  document.getElementById('s-adsNativeEnabled').checked = !!appSettings.adsNativeEnabled;
-  document.getElementById('s-adsRewardedEnabled').checked = !!appSettings.adsRewardedEnabled;
+  document.getElementById('s-cricketApiKey').value = appSettings.cricketApiKey || '';
+  if (document.getElementById('s-adsEnabled')) document.getElementById('s-adsEnabled').checked = !!appSettings.adsEnabled;
+  if (document.getElementById('s-adsBannerEnabled')) document.getElementById('s-adsBannerEnabled').checked = !!appSettings.adsBannerEnabled;
+  if (document.getElementById('s-adsInterstitialEnabled')) document.getElementById('s-adsInterstitialEnabled').checked = !!appSettings.adsInterstitialEnabled;
+  if (document.getElementById('s-adsAppOpenEnabled')) document.getElementById('s-adsAppOpenEnabled').checked = !!appSettings.adsAppOpenEnabled;
+  if (document.getElementById('s-adsNativeEnabled')) document.getElementById('s-adsNativeEnabled').checked = !!appSettings.adsNativeEnabled;
+  if (document.getElementById('s-adsRewardedEnabled')) document.getElementById('s-adsRewardedEnabled').checked = !!appSettings.adsRewardedEnabled;
 
   previewSettingsLogo('logo');
   previewSettingsLogo('loading');
@@ -869,43 +922,51 @@ window.addEventListener('load', () => {
 });
 
 async function saveAppSettings() {
+  const getValue = (id) => document.getElementById(id)?.value?.trim() || '';
+  const getChecked = (id) => document.getElementById(id)?.checked || false;
+
   const data = {
-    appName: document.getElementById('s-appName').value.trim(),
-    logoUrl: document.getElementById('s-logoUrl').value.trim(),
-    loadingLogo: document.getElementById('s-loadingLogo').value.trim(),
-    primaryColor: document.getElementById('s-primaryColor').value,
-    accentColor: document.getElementById('s-accentColor').value,
-    announcement: document.getElementById('s-announcement').value.trim(),
-    whatsappUrl: document.getElementById('s-whatsappUrl').value.trim(),
-    telegramUrl: document.getElementById('s-telegramUrl').value.trim(),
-    maintenanceMode: document.getElementById('s-maintenanceMode').checked,
-    minVersion: document.getElementById('s-minVersion').value.trim() || '1.1.0',
-    updateUrl: document.getElementById('s-updateUrl').value.trim(),
-    supportEmail: document.getElementById('s-supportEmail').value.trim(),
-    instagramUrl: document.getElementById('s-instagramUrl').value.trim(),
-    twitterUrl: document.getElementById('s-twitterUrl').value.trim(),
-    privacyUrl: document.getElementById('s-privacyUrl').value.trim(),
-    termsUrl: document.getElementById('s-termsUrl').value.trim(),
-    copyright: document.getElementById('s-copyright').value.trim(),
-    adsEnabled: document.getElementById('s-adsEnabled').checked,
-    adsBannerEnabled: document.getElementById('s-adsBannerEnabled').checked,
-    adsInterstitialEnabled: document.getElementById('s-adsInterstitialEnabled').checked,
-    adsAppOpenEnabled: document.getElementById('s-adsAppOpenEnabled').checked,
-    adsNativeEnabled: document.getElementById('s-adsNativeEnabled').checked,
-    adsRewardedEnabled: document.getElementById('s-adsRewardedEnabled').checked,
-    admobBannerId: document.getElementById('s-admobBannerId').value.trim(),
-    admobInterstitialId: document.getElementById('s-admobInterstitialId').value.trim(),
-    admobAppOpenId: document.getElementById('s-admobAppOpenId').value.trim(),
-    admobNativeId: document.getElementById('s-admobNativeId').value.trim(),
-    admobRewardedId: document.getElementById('s-admobRewardedId').value.trim(),
-    admobRewardedInterId: document.getElementById('s-admobRewardedInterId').value.trim(),
+    appName: getValue('s-appName'),
+    logoUrl: getValue('s-logoUrl'),
+    loadingLogo: getValue('s-loadingLogo'),
+    primaryColor: getValue('s-primaryColor'),
+    accentColor: getValue('s-accentColor'),
+    announcement: getValue('s-announcement'),
+    whatsappUrl: getValue('s-whatsappUrl'),
+    telegramUrl: getValue('s-telegramUrl'),
+    maintenanceMode: getChecked('s-maintenanceMode'),
+    minVersion: getValue('s-minVersion') || '1.1.0',
+    updateUrl: getValue('s-updateUrl'),
+    supportEmail: getValue('s-supportEmail'),
+    instagramUrl: getValue('s-instagramUrl'),
+    twitterUrl: getValue('s-twitterUrl'),
+    privacyUrl: getValue('s-privacyUrl'),
+    termsUrl: getValue('s-termsUrl'),
+    copyright: getValue('s-copyright'),
+    adsEnabled: getChecked('s-adsEnabled'),
+    adsBannerEnabled: getChecked('s-adsBannerEnabled'),
+    adsInterstitialEnabled: getChecked('s-adsInterstitialEnabled'),
+    adsAppOpenEnabled: getChecked('s-adsAppOpenEnabled'),
+    adsNativeEnabled: getChecked('s-adsNativeEnabled'),
+    adsRewardedEnabled: getChecked('s-adsRewardedEnabled'),
+    admobBannerId: getValue('s-admobBannerId'),
+    admobInterstitialId: getValue('s-admobInterstitialId'),
+    admobAppOpenId: getValue('s-admobAppOpenId'),
+    admobNativeId: getValue('s-admobNativeId'),
+    admobRewardedId: getValue('s-admobRewardedId'),
+    admobRewardedInterId: getValue('s-admobRewardedInterId'),
+    cricketApiKey: getValue('s-cricketApiKey'),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
+  console.log('DEBUG: Saving App Settings:', data);
+
   try {
-    await db.collection('settings').doc('app_config').set(data, { merge: true });
+    const docRef = db.collection('settings').doc('app_config');
+    await docRef.set(data, { merge: true });
     showToast('App Configuration Saved! ✓', 'success');
   } catch (e) {
+    console.error('DEBUG: Save Settings Error:', e);
     showToast('Error saving settings: ' + e.message, 'error');
   }
 }

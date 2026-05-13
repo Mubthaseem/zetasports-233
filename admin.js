@@ -899,13 +899,14 @@ async function saveAppSettings() {
 
 function updateWebsiteBranding() {
   if (!appSettings) return;
-  // Update website header logo if it exists
-  const logoImg = document.querySelector('.logo-img'); // Assuming web app has this class
-  if (logoImg && appSettings.logoUrl) {
-    logoImg.src = appSettings.logoUrl;
-  }
-  
-  // Update CSS variables for the web app
+  const logos = document.querySelectorAll('.sb-logo, .login-logo');
+  logos.forEach(l => {
+    if (appSettings.logoUrl) {
+      l.innerHTML = `<img src="${appSettings.logoUrl}" style="height:32px;object-fit:contain">`;
+    } else {
+      l.innerHTML = `<div class="logo-box">ZS</div>ZETA<span>SPORTS</span>`;
+    }
+  });
   if (appSettings.primaryColor) {
     document.documentElement.style.setProperty('--acc', appSettings.primaryColor);
   }

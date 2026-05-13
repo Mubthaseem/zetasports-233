@@ -137,6 +137,16 @@ input:checked + .slider{background:rgba(41,121,255,.2);border-color:var(--acc)}
 input:checked + .slider:before{transform:translateX(20px);background:var(--acc)}
 
 @media(max-width:640px){.sidebar{width:60px}.sb-item span{display:none}.sb-logo .name{display:none}.main{margin-left:60px}.form-row{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}}
+.logo-box{
+  width:32px;height:32px;border-radius:8px;
+  background:linear-gradient(135deg, #FFD700, #FFA500);
+  color:#000;display:inline-flex;align-items:center;justify-content:center;
+  font-family:'Rajdhani', sans-serif;font-weight:900;font-size:16px;
+  box-shadow:0 0 15px rgba(255, 215, 0, 0.4);
+  margin-right:10px;vertical-align:middle;
+}
+.login-logo { display:flex; align-items:center; justify-content:center; }
+.sb-logo { display:flex; align-items:center; }
 </style>
 </head>
 <body>
@@ -144,7 +154,7 @@ input:checked + .slider:before{transform:translateX(20px);background:var(--acc)}
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo">⚡ ZETA<span>SPORTS</span></div>
+    <div class="login-logo"><div class="logo-box">ZS</div>ZETA<span>SPORTS</span></div>
     <div class="login-sub">Admin Panel · Enter PIN</div>
     <div class="pin-row" id="pin-row">
       <div class="pin-dot" id="d0">·</div>
@@ -161,7 +171,7 @@ input:checked + .slider:before{transform:translateX(20px);background:var(--acc)}
 <!-- APP -->
 <div id="app">
   <div class="sidebar">
-    <div class="sb-logo">⚡ <span class="name">ZETA<span>SPORTS</span></span></div>
+    <div class="sb-logo"><div class="logo-box">ZS</div> <span class="name">ZETA<span>SPORTS</span></span></div>
     <nav class="sb-nav">
       <div class="sb-item" onclick="goPage('dashboard')"><span class="ico">📊</span><span>Dashboard</span></div>
       <div class="sb-item" onclick="goPage('matches')"><span class="ico">⚽</span><span>Matches</span></div>
@@ -395,9 +405,8 @@ input:checked + .slider:before{transform:translateX(20px);background:var(--acc)}
         <button class="btn btn-primary" style="width:100%; padding:14px" onclick="saveAppSettings()">💾 Save All App Settings</button>
       </div>
     </div>
-      </div>
-    </div>
   </div>
+</div>
 </div>
 
 <!-- MATCH MODAL -->

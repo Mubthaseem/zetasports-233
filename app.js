@@ -187,12 +187,26 @@ function initFirebase() {
   } catch (e) { console.warn('[ZETASPORTS] Firebase error — running on mock data.', e); }
 }
 
+function updateHeader(liveCount) {
+  const countEl = document.getElementById('live-count-val');
+  const pillEl  = document.getElementById('live-pill');
+  if (countEl) countEl.textContent = liveCount || 0;
+  if (pillEl) {
+    pillEl.style.opacity = liveCount > 0 ? '1' : '0';
+    pillEl.style.pointerEvents = liveCount > 0 ? 'auto' : 'none';
+  }
+}
+
 function updateWebBranding() {
   const c = S.config;
   if (!c) return;
-  if (c.logoUrl) {
-    const logo = document.getElementById('header-logo');
-    if (logo) logo.innerHTML = `<img src="${c.logoUrl}" style="height:32px;object-fit:contain">`;
+  const logoContainer = document.getElementById('header-logo');
+  if (logoContainer) {
+    if (c.logoUrl) {
+      logoContainer.innerHTML = `<img src="${c.logoUrl}" style="height:32px;object-fit:contain">`;
+    } else {
+      logoContainer.innerHTML = `<div class="logo-box">ZS</div><span class="logo-text">ZETA<span class="logo-accent">SPORTS</span></span>`;
+    }
   }
   if (c.primaryColor) {
     document.documentElement.style.setProperty('--accent', c.primaryColor);
@@ -256,6 +270,9 @@ async function registerFCMToken() {
 }
 
 function refresh() {
+  const liveCount = S.matches.filter(m => m.status==='live' || m.status==='ht').length;
+  updateHeader(liveCount);
+
   if (S.screen === 'home')      showHome();
   if (S.screen === 'matches')   showMatches();
   if (S.screen === 'standings') showStandings();
@@ -339,8 +356,7 @@ function showHome() {
   }
 
   const dateMatches = S.matches.filter(m => m.kickoffDate === targetDateStr);
-  document.getElementById('live-pill').innerHTML = `<span class="live-dot-sm"></span>&nbsp;${live.length} LIVE`;
-
+  
   const dateChipsHtml = `
     <div class="date-filter">
       <button onclick="setHomeDateFilter('yesterday')" class="date-chip ${S.homeDateFilter==='yesterday'?'active':''}">Yesterday</button>

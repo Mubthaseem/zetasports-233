@@ -790,17 +790,37 @@ function renderSettings() {
   document.getElementById('s-appName').value = appSettings.appName || 'ZETASPORTS';
   document.getElementById('s-logoUrl').value = appSettings.logoUrl || '';
   document.getElementById('s-loadingLogo').value = appSettings.loadingLogo || '';
-  document.getElementById('s-primaryColor').value = appSettings.primaryColor || '#2979ff';
-  document.getElementById('s-primaryColorText').value = appSettings.primaryColor || '#2979ff';
-  document.getElementById('s-accentColor').value = appSettings.accentColor || '#82b1ff';
-  document.getElementById('s-accentColorText').value = appSettings.accentColor || '#82b1ff';
+  
+  const pCol = appSettings.primaryColor || '#2979ff';
+  document.getElementById('s-primaryColor').value = pCol;
+  document.getElementById('s-primaryColorText').value = pCol;
+  
+  const aCol = appSettings.accentColor || '#82b1ff';
+  document.getElementById('s-accentColor').value = aCol;
+  document.getElementById('s-accentColorText').value = aCol;
   
   document.getElementById('s-announcement').value = appSettings.announcement || '';
   document.getElementById('s-whatsappUrl').value = appSettings.whatsappUrl || '';
   document.getElementById('s-telegramUrl').value = appSettings.telegramUrl || '';
+  
   document.getElementById('s-maintenanceMode').checked = !!appSettings.maintenanceMode;
-  document.getElementById('s-minVersion').value = appSettings.minVersion || '1.0.0';
+  document.getElementById('s-minVersion').value = appSettings.minVersion || '1.1.0';
   document.getElementById('s-updateUrl').value = appSettings.updateUrl || '';
+
+  document.getElementById('s-supportEmail').value = appSettings.supportEmail || '';
+  document.getElementById('s-instagramUrl').value = appSettings.instagramUrl || '';
+  document.getElementById('s-twitterUrl').value = appSettings.twitterUrl || '';
+  document.getElementById('s-privacyUrl').value = appSettings.privacyUrl || '';
+  document.getElementById('s-termsUrl').value = appSettings.termsUrl || '';
+  document.getElementById('s-copyright').value = appSettings.copyright || '';
+
+  document.getElementById('s-admobBannerId').value = appSettings.admobBannerId || '';
+  document.getElementById('s-admobInterstitialId').value = appSettings.admobInterstitialId || '';
+  document.getElementById('s-admobAppOpenId').value = appSettings.admobAppOpenId || '';
+  document.getElementById('s-admobNativeId').value = appSettings.admobNativeId || '';
+  document.getElementById('s-admobRewardedId').value = appSettings.admobRewardedId || '';
+  document.getElementById('s-admobRewardedInterId').value = appSettings.admobRewardedInterId || '';
+  document.getElementById('s-adsEnabled').checked = !!appSettings.adsEnabled;
 
   previewSettingsLogo('logo');
   previewSettingsLogo('loading');
@@ -818,14 +838,26 @@ function previewSettingsLogo(type) {
   }
 }
 
-// Add event listeners for live preview
-document.getElementById('s-logoUrl').addEventListener('input', () => previewSettingsLogo('logo'));
-document.getElementById('s-loadingLogo').addEventListener('input', () => previewSettingsLogo('loading'));
-document.getElementById('s-primaryColor').addEventListener('input', (e) => {
-  document.getElementById('s-primaryColorText').value = e.target.value;
-});
-document.getElementById('s-accentColor').addEventListener('input', (e) => {
-  document.getElementById('s-accentColorText').value = e.target.value;
+// Event listeners for live previews and color syncing
+window.addEventListener('load', () => {
+  const logoInp = document.getElementById('s-logoUrl');
+  const loadInp = document.getElementById('s-loadingLogo');
+  const pColInp = document.getElementById('s-primaryColor');
+  const pColTxt = document.getElementById('s-primaryColorText');
+  const aColInp = document.getElementById('s-accentColor');
+  const aColTxt = document.getElementById('s-accentColorText');
+
+  if(logoInp) logoInp.addEventListener('input', () => previewSettingsLogo('logo'));
+  if(loadInp) loadInp.addEventListener('input', () => previewSettingsLogo('loading'));
+  
+  if(pColInp && pColTxt) {
+    pColInp.addEventListener('input', (e) => pColTxt.value = e.target.value);
+    pColTxt.addEventListener('input', (e) => { if(e.target.value.length === 7) pColInp.value = e.target.value; });
+  }
+  if(aColInp && aColTxt) {
+    aColInp.addEventListener('input', (e) => aColTxt.value = e.target.value);
+    aColTxt.addEventListener('input', (e) => { if(e.target.value.length === 7) aColInp.value = e.target.value; });
+  }
 });
 
 async function saveAppSettings() {
@@ -839,8 +871,21 @@ async function saveAppSettings() {
     whatsappUrl: document.getElementById('s-whatsappUrl').value.trim(),
     telegramUrl: document.getElementById('s-telegramUrl').value.trim(),
     maintenanceMode: document.getElementById('s-maintenanceMode').checked,
-    minVersion: document.getElementById('s-minVersion').value.trim() || '1.0.0',
+    minVersion: document.getElementById('s-minVersion').value.trim() || '1.1.0',
     updateUrl: document.getElementById('s-updateUrl').value.trim(),
+    supportEmail: document.getElementById('s-supportEmail').value.trim(),
+    instagramUrl: document.getElementById('s-instagramUrl').value.trim(),
+    twitterUrl: document.getElementById('s-twitterUrl').value.trim(),
+    privacyUrl: document.getElementById('s-privacyUrl').value.trim(),
+    termsUrl: document.getElementById('s-termsUrl').value.trim(),
+    copyright: document.getElementById('s-copyright').value.trim(),
+    adsEnabled: document.getElementById('s-adsEnabled').checked,
+    admobBannerId: document.getElementById('s-admobBannerId').value.trim(),
+    admobInterstitialId: document.getElementById('s-admobInterstitialId').value.trim(),
+    admobAppOpenId: document.getElementById('s-admobAppOpenId').value.trim(),
+    admobNativeId: document.getElementById('s-admobNativeId').value.trim(),
+    admobRewardedId: document.getElementById('s-admobRewardedId').value.trim(),
+    admobRewardedInterId: document.getElementById('s-admobRewardedInterId').value.trim(),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 

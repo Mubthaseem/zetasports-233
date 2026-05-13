@@ -1,0 +1,84 @@
+    <!-- APP SETTINGS -->
+    <div id="page-settings" style="display:none">
+      <div class="page-hdr"><h1 class="page-title">App Customization</h1></div>
+      <div class="table-wrap" style="padding:22px; max-width: 600px;">
+        <div style="font-size:13px;font-weight:700;color:var(--acc2);margin-bottom:16px">🎨 Branding & Identity</div>
+        
+        <div class="form-group">
+          <label class="form-label">App Name</label>
+          <input class="form-input" id="s-appName" placeholder="ZETASPORTS"/>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Header Logo URL</label>
+          <input class="form-input" id="s-logoUrl" placeholder="https://..."/>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Primary Color</label>
+            <input class="form-input" id="s-primaryColor" type="color" value="#2979ff"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Accent Color</label>
+            <input class="form-input" id="s-accentColor" type="color" value="#82b1ff"/>
+          </div>
+        </div>
+
+        <div style="font-size:13px;font-weight:700;color:var(--acc2);margin-top:24px;margin-bottom:16px">📢 Announcements & Community</div>
+        <div class="form-group">
+          <label class="form-label">Home Announcement (Scrolling Text)</label>
+          <input class="form-input" id="s-announcement" placeholder="Welcome to ZetaSports!"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp Group URL</label>
+          <input class="form-input" id="s-whatsappUrl" placeholder="https://chat.whatsapp.com/..."/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Telegram Channel URL</label>
+          <input class="form-input" id="s-telegramUrl" placeholder="https://t.me/..."/>
+        </div>
+
+        <div style="font-size:13px;font-weight:700;color:var(--acc2);margin-top:24px;margin-bottom:16px">🛠️ Maintenance & Updates</div>
+        <div class="form-group" style="display:flex; align-items:center; gap:12px;">
+          <label class="form-label" style="margin:0; flex:1">Maintenance Mode</label>
+          <label class="switch">
+            <input type="checkbox" id="s-maintenanceMode">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Minimum App Version (e.g. 1.1.0)</label>
+          <input class="form-input" id="s-minVersion" placeholder="1.0.0"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Update Download URL (APK Link)</label>
+          <input class="form-input" id="s-updateUrl" placeholder="https://..."/>
+        </div>
+
+        <div style="margin-top:30px; padding-top:20px; border-top:1px solid var(--border)">
+          <div style="font-size:13px;font-weight:700;color:var(--acc2);margin-bottom:16px">💰 Monetization & Ads</div>
+          
+          <div class="form-group" style="display:flex; align-items:center; gap:12px; background:rgba(41,121,255,0.05); padding:10px; border-radius:10px;">
+            <label class="form-label" style="margin:0; flex:1">Enable AdMob Ads</label>
+            <label class="switch">
+              <input type="checkbox" id="s-adsEnabled">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Banner Ad Unit ID</label>
+            <input class="form-input" id="s-admobBannerId" placeholder="ca-app-pub-..."/>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Interstitial Ad Unit ID</label>
+            <input class="form-input" id="s-admobInterstitialId" placeholder="ca-app-pub-..."/>
+          </div>
+        </div>
+
+        <div style="height:30px"></div>
+        <button class="btn btn-primary" style="width:100%; padding:14px" onclick="saveAppSettings()">💾 Save All App Settings</button>
+      </div>
+    </div>

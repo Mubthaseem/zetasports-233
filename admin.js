@@ -177,10 +177,6 @@ function formatTime12(time24) {
   return `${h}:${p[1]} ${ampm}`;
 }
 
-    </tr>`).join('');
-}
-}
-
 /* ── MATCH TABLE ── */
 function renderMatchTable() {
   const sorted = [...allMatches].sort((a,b)=>{

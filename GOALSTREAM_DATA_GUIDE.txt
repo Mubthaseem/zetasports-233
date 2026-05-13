@@ -1,0 +1,404 @@
+================================================================================
+  GOALSTREAM — FIREBASE FIRESTORE DATA MANAGEMENT GUIDE
+  Project: zeta-sports | Firebase Console: https://console.firebase.google.com
+================================================================================
+
+This guide explains how to add, edit, and manage all data that appears in the
+GoalStream app — matches, match details, leagues (tournaments), and news — using
+the Firebase Firestore Console.
+
+--------------------------------------------------------------------------------
+  GETTING STARTED
+--------------------------------------------------------------------------------
+
+1. Go to: https://console.firebase.google.com
+2. Select project: "zeta-sports"
+3. In the left sidebar, click "Firestore Database"
+4. You will see a panel with Collections and Documents.
+
+The app uses 3 main collections:
+  - matches    → All football matches (live, upcoming, finished)
+  - news       → News articles shown on the News screen
+  - leagues    → League/Tournament info shown on the Leagues screen
+
+NOTE: The app shows built-in mock data until you add real documents.
+      As soon as you add at least 1 document to a collection, Firestore
+      data takes over automatically (real-time, no app restart needed).
+
+
+================================================================================
+  COLLECTION 1: matches
+================================================================================
+
+Each document in this collection = one football match.
+
+HOW TO ADD A MATCH:
+  1. Open Firestore → Click "matches" collection (create if not exists)
+  2. Click "+ Add document"
+  3. Leave Document ID as auto-generated, or type your own (e.g. "epl-ars-mci-20260512")
+  4. Add the following fields:
+
+--------------------------------------------------------------------------------
+  REQUIRED FIELDS
+--------------------------------------------------------------------------------
+
+Field Name      | Type    | Example Value          | Description
+----------------|---------|------------------------|----------------------------
+home            | string  | "ARS"                  | Home team code (3 letters)
+away            | string  | "MCI"                  | Away team code (3 letters)
+homeTeam        | string  | "Arsenal"              | Home team full name
+awayTeam        | string  | "Man City"             | Away team full name
+leagueId        | string  | "EPL"                  | Must match a leagues doc ID
+leagueName      | string  | "Premier League"       | Display name of league
+kickoffIST      | string  | "21:30"                | Kick-off time in IST (HH:MM)
+kickoffDate     | string  | "2026-05-12"           | Match date (YYYY-MM-DD)
+status          | string  | "upcoming"             | See status values below
+
+--------------------------------------------------------------------------------
+  STATUS VALUES (use exactly as shown)
+--------------------------------------------------------------------------------
+
+  "upcoming"  → Match has not started yet
+  "live"      → Match is currently being played
+  "ht"        → Half Time (match paused at half time)
+  "finished"  → Match is over (Full Time)
+
+--------------------------------------------------------------------------------
+  SCORE FIELDS (add when match is live, ht, or finished)
+--------------------------------------------------------------------------------
+
+Field Name      | Type    | Example Value | Description
+----------------|---------|---------------|-------------------------------
+homeScore       | number  | 2             | Goals scored by home team
+awayScore       | number  | 1             | Goals scored by away team
+minute          | string  | "67'"         | Current match minute (live only)
+
+  For upcoming matches: leave homeScore and awayScore empty (or don't add them)
+  For live/ht matches:  add homeScore, awayScore, and minute
+  For finished matches: add homeScore and awayScore, remove minute
+
+--------------------------------------------------------------------------------
+  LOGO FIELDS (optional but recommended)
+--------------------------------------------------------------------------------
+
+Field Name      | Type    | Example Value                          | Description
+----------------|---------|----------------------------------------|-------------------
+homeLogo        | string  | "https://example.com/logos/arsenal.png"| Home team logo URL
+awayLogo        | string  | "https://example.com/logos/mancity.png"| Away team logo URL
+
+  If these fields are missing or the URL fails to load, the app automatically
+  shows the team name initials instead (e.g. "ARS", "MC").
+
+  Recommended logo sources:
+  - Wikipedia SVG logos (search: "Arsenal FC Wikipedia")
+  - API-Football logo URLs
+  - Your own Firebase Storage URLs
+
+--------------------------------------------------------------------------------
+  HOME BANNER FIELD
+--------------------------------------------------------------------------------
+
+Field Name      | Type    | Example Value | Description
+----------------|---------|---------------|----------------------------------------
+featured        | boolean | true          | Set true on ONE match to show it as the
+                |         |               | featured banner on the Home screen.
+                |         |               | Only set this on live or important matches.
+
+  TIP: Only one match should have featured = true at a time.
+
+--------------------------------------------------------------------------------
+  SERVER / STREAMING LINKS (MOST IMPORTANT)
+--------------------------------------------------------------------------------
+
+Field Name      | Type  | Structure
+----------------|-------|----------------------------------------------------------
+servers         | array | Array of maps, each map has: label (string) + url (string)
+
+HOW TO ADD SERVER LINKS IN FIRESTORE:
+  1. Click the "servers" field → choose type "array"
+  2. Click "+ Add value" → choose type "map"
+  3. Inside the map, add two fields:
+       label  (string)  →  "Server 1"
+       url    (string)  →  "https://your-streaming-link.com/stream1"
+  4. Repeat for Server 2, Server 3, etc.
+
+Example servers array:
+  [
+    { label: "Server 1", url: "https://streamlink1.com/live/match123" },
+    { label: "Server 2", url: "https://streamlink2.com/live/match123" },
+    { label: "Server 3", url: "https://embedstream.com/v/abc123"      }
+  ]
+
+  When a user taps a Server button in the app, it opens that URL in their browser.
+  Leave servers as an empty array [] if no streams are available yet.
+
+--------------------------------------------------------------------------------
+  COMPLETE MATCH DOCUMENT EXAMPLE
+--------------------------------------------------------------------------------
+
+Document ID: epl-ars-mci-20260512
+
+  home:         "ARS"
+  away:         "MCI"
+  homeTeam:     "Arsenal"
+  awayTeam:     "Man City"
+  homeScore:    2
+  awayScore:    1
+  minute:       "67'"
+  status:       "live"
+  kickoffIST:   "21:30"
+  kickoffDate:  "2026-05-12"
+  leagueId:     "EPL"
+  leagueName:   "Premier League"
+  homeLogo:     "https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg"
+  awayLogo:     "https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg"
+  featured:     true
+  servers:      [
+                  { label: "Server 1", url: "https://stream1.example.com/live" },
+                  { label: "Server 2", url: "https://stream2.example.com/live" },
+                  { label: "Server 3", url: "https://stream3.example.com/live" }
+                ]
+
+--------------------------------------------------------------------------------
+  HOW TO UPDATE A LIVE MATCH (e.g. goal scored)
+--------------------------------------------------------------------------------
+
+  1. Open the match document in Firestore
+  2. Click the pencil icon next to homeScore or awayScore
+  3. Change the value and press Enter
+  4. The app updates INSTANTLY on all devices (real-time listener)
+
+  To update match minute:
+  - Edit the "minute" field → e.g. change "67'" to "74'"
+
+  To mark match as finished:
+  - Change status from "live" to "finished"
+  - Remove the "minute" field (or leave it, it won't be shown)
+
+  To mark half time:
+  - Change status to "ht"
+  - The app shows "⏸ HT" badge automatically
+
+--------------------------------------------------------------------------------
+  HOW TO DELETE A MATCH
+--------------------------------------------------------------------------------
+
+  1. Open the match document
+  2. Click the three-dot menu (⋮) at the top right
+  3. Click "Delete document"
+  4. Confirm deletion
+
+  The match disappears from the app in real-time.
+
+
+================================================================================
+  COLLECTION 2: news
+================================================================================
+
+Each document = one news article card shown on the News screen and Home screen.
+
+HOW TO ADD A NEWS ARTICLE:
+  1. Open Firestore → Click "news" collection
+  2. Click "+ Add document"
+  3. Add the following fields:
+
+Field Name    | Type      | Example Value                              | Description
+--------------|-----------|--------------------------------------------|--------------------------
+title         | string    | "Arsenal win Premier League title"         | Article headline
+category      | string    | "Match Report"                             | Category badge label
+articleUrl    | string    | "https://bbc.com/sport/football/xyz"       | Link opened when tapped
+imageUrl      | string    | "https://example.com/images/arsenal.jpg"   | Article image (optional)
+emoji         | string    | "⚽"                                        | Emoji shown if no image
+gradient      | string    | "linear-gradient(135deg,#1a0a2e,#3d195b)"  | Background gradient color
+publishedAt   | timestamp | (select Timestamp type in Firestore)       | Used for sorting (newest first)
+
+CATEGORY SUGGESTIONS:
+  "Match Report"     → Post-match articles
+  "Champions League" → UCL news
+  "Transfer News"    → Player transfers
+  "Indian Football"  → ISL and Indian team news
+  "Analysis"         → Tactical analysis pieces
+  "Feature"          → Special features and interviews
+  "News"             → General football news
+
+GRADIENT COLORS (copy-paste for nice card backgrounds):
+  Purple (UCL):        linear-gradient(135deg,#1a0a2e,#3d195b)
+  Blue (UCL/CL):       linear-gradient(135deg,#0a1a3e,#003399)
+  Red (Barcelona):     linear-gradient(135deg,#2e0a10,#a50044)
+  Orange (ISL):        linear-gradient(135deg,#1a0e00,#f58220)
+  Green (Analysis):    linear-gradient(135deg,#0a1a0a,#2d5a1b)
+  Dark Blue (News):    linear-gradient(135deg,#0a0a1a,#1a1a4a)
+  Red (Man Utd):       linear-gradient(135deg,#1a0505,#da020a)
+  Yellow (Dortmund):   linear-gradient(135deg,#1a1500,#fde100)
+
+SORTING:
+  News articles are sorted by "publishedAt" newest first.
+  Always set publishedAt as a Timestamp type in Firestore.
+  To set it to "now": click the field → choose "Timestamp" → click "Now".
+
+COMPLETE NEWS DOCUMENT EXAMPLE:
+  title:        "Arsenal clinch Premier League title in dramatic fashion"
+  category:     "Match Report"
+  articleUrl:   "https://www.bbc.com/sport/football/articles/abc123"
+  imageUrl:     ""
+  emoji:        "⚽"
+  gradient:     "linear-gradient(135deg,#1a0a2e,#3d195b)"
+  publishedAt:  [Timestamp: 2026-05-12 21:45:00]
+
+
+================================================================================
+  COLLECTION 3: leagues
+================================================================================
+
+Each document = one tournament / league shown on the Leagues screen.
+The document ID must match the leagueId used in the matches collection.
+
+HOW TO ADD A LEAGUE/TOURNAMENT:
+  1. Open Firestore → Click "leagues" collection
+  2. Click "+ Add document"
+  3. Set Document ID manually (e.g. "EPL", "UCL", "ISL")
+  4. Add the following fields:
+
+Field Name  | Type   | Example Value         | Description
+------------|--------|-----------------------|--------------------------------
+name        | string | "Premier League"      | Full name of the league
+emoji       | string | "⚽"                   | Emoji shown on league cards
+country     | string | "England"             | Country or region
+color       | string | "#3d195b"             | Hex color for league badge
+logo        | string | "https://..."         | League logo URL (optional)
+
+STANDARD LEAGUE DOCUMENT IDs (use these exact IDs):
+  EPL         → Premier League (England)
+  UCL         → UEFA Champions League (Europe)
+  LALIGA      → La Liga (Spain)
+  BUNDESLIGA  → Bundesliga (Germany)
+  SERIEA      → Serie A (Italy)
+  ISL         → Indian Super League (India)
+  LIGUE1      → Ligue 1 (France)
+  AFC         → AFC Champions League (Asia)
+  EURO        → UEFA Euro (Europe)
+  WC          → FIFA World Cup
+
+  You can add any custom tournament by using a unique ID (e.g. "IPL2026").
+  Make sure the matches for that tournament use the same leagueId value.
+
+COMPLETE LEAGUE DOCUMENT EXAMPLE:
+  Document ID: EPL
+  name:    "Premier League"
+  emoji:   "⚽"
+  country: "England"
+  color:   "#3d195b"
+  logo:    "https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg"
+
+
+================================================================================
+  QUICK REFERENCE — MATCH LIFECYCLE
+================================================================================
+
+  BEFORE MATCH:
+    status:     "upcoming"
+    homeScore:  (don't add)
+    awayScore:  (don't add)
+    minute:     (don't add)
+    servers:    [ add stream links in advance ]
+
+  WHEN MATCH KICKS OFF:
+    status:     "live"
+    homeScore:  0
+    awayScore:  0
+    minute:     "1'"
+
+  DURING MATCH (update as goals happen):
+    homeScore:  2        ← update when goal scored
+    awayScore:  1
+    minute:     "67'"    ← update as match progresses
+
+  AT HALF TIME:
+    status:     "ht"
+    (keep scores as they are, remove or keep minute)
+
+  SECOND HALF:
+    status:     "live"
+    minute:     "46'"
+
+  FULL TIME:
+    status:     "finished"
+    (keep final scores, remove minute field)
+
+
+================================================================================
+  TIPS & BEST PRACTICES
+================================================================================
+
+1. REAL-TIME UPDATES
+   All changes in Firestore appear in the app within 1-2 seconds.
+   No need to refresh or redeploy. Just save the field and it updates live.
+
+2. BULK MATCH IMPORT
+   If you have many matches to add, use the Firebase Admin SDK or
+   a Google Sheets + Apps Script integration to bulk-import data.
+
+3. KEEPING STREAM LINKS SAFE
+   Stream URLs are only loaded when a user taps a match. They are stored
+   in Firestore (not in the app code), so you can update them anytime
+   without touching the app files.
+
+4. FEATURED MATCH
+   Only one match should have featured = true at a time.
+   When a match finishes, set featured = false (or delete the field).
+   Set featured = true on the next live/upcoming important match.
+
+5. MATCH CLEANUP
+   Finished matches stay in the "Finished" tab.
+   Delete old finished matches periodically to keep Firestore clean.
+   Recommended: delete matches older than 7 days.
+
+6. LOGO URLS
+   Use HTTPS links only. HTTP links may be blocked in the app.
+   Wikipedia SVG logos are recommended (free, high quality, permanent URLs).
+   You can also upload logos to Firebase Storage and use those URLs.
+
+7. ORDERING
+   Matches are displayed in the order they appear in Firestore.
+   To control order, add a sortOrder (number) field and sort by it,
+   or prefix document IDs with a number (e.g. "01-epl-ars-mci").
+
+8. SERVER LINK EXPIRY
+   Streaming links often expire. Update the "servers" array in the
+   match document before each match starts with fresh working links.
+
+
+================================================================================
+  FIRESTORE SECURITY RULES (RECOMMENDED)
+================================================================================
+
+  To allow the app to READ data but prevent public WRITES, set these rules
+  in Firestore → Rules tab:
+
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      match /{document=**} {
+        allow read: if true;          // Anyone can read (public app)
+        allow write: if false;        // Only Firebase Console / Admin SDK can write
+      }
+    }
+  }
+
+  This protects your data from being modified by users while keeping the app
+  fully functional for reading matches, news, and leagues.
+
+
+================================================================================
+  SUPPORT & REFERENCE
+================================================================================
+
+  Firebase Console:      https://console.firebase.google.com/project/zeta-sports
+  Firestore Docs:        https://firebase.google.com/docs/firestore
+  Firebase Storage:      https://console.firebase.google.com/project/zeta-sports/storage
+  App Project Folder:    C:\Users\Mubthaseem\.gemini\antigravity\scratch\zetasports-app\
+
+================================================================================
+  END OF DOCUMENTATION
+  GoalStream v1.0 — Data Management Guide
+================================================================================

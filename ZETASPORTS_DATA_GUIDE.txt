@@ -1,0 +1,435 @@
+================================================================
+  ZETASPORTS — Complete Data Management Guide
+  Version 2.0 | Updated: May 2026
+================================================================
+
+HOW TO ACCESS THE ADMIN PANEL
+──────────────────────────────
+Open admin.html in your browser (same folder as index.html).
+Default PIN: 1234  (change in admin.js line 3: const ADMIN_PIN = '1234')
+
+The admin panel has 5 tabs:
+  📊 Dashboard    — Overview stats and quick match edits
+  ⚽ Matches      — Add / Edit / Delete matches + streams
+  📰 News         — Write articles or link to external ones
+  🏆 Leagues      — Add custom leagues
+  🔔 Notifications — Broadcast push notifications to all users
+
+
+================================================================
+  SECTION 1: MANAGING MATCHES
+================================================================
+
+HOW TO ADD A MATCH
+──────────────────
+1. Go to "Matches" tab → click "+ Add Match"
+2. Fill in all fields (see field descriptions below)
+3. Click "Save Match"
+
+MATCH FIELDS
+────────────
+Home Team Name      Full name, e.g. "Arsenal"
+Away Team Name      Full name, e.g. "Manchester City"
+Home Code           3-5 letter abbreviation, e.g. "ARS"
+Away Code           3-5 letter abbreviation, e.g. "MCI"
+Home Logo URL       Direct image URL for team badge (optional)
+Away Logo URL       Direct image URL for team badge (optional)
+League              Select from dropdown (EPL, UCL, La Liga, etc.)
+Status              See Status Values below
+Match Date          Date picker (YYYY-MM-DD)
+Kick-off (IST)      Time in Indian Standard Time, e.g. "21:30"
+Featured            ✓ Tick to show this match in the home banner
+Stream Servers      Add up to unlimited streaming links (see below)
+
+STATUS VALUES
+─────────────
+upcoming   → Match has not started yet. Shows kick-off time.
+live       → Match is currently being played. Shows score + minute.
+ht         → Half time. Shows "HT" badge.
+finished   → Match is over. Shows final score.
+
+HOW TO UPDATE A LIVE SCORE
+───────────────────────────
+1. Find the match in the Matches tab
+2. Click ✏️ Edit
+3. Change Status to "live"
+4. Update Home Score and Away Score numbers
+5. Update the Minute field (e.g. "67'")
+6. Click "Save Match" → updates instantly in the app
+
+HOW TO MARK HALF TIME
+──────────────────────
+Change Status to "ht" → the app shows ⏸ HT badge automatically.
+
+HOW TO END A MATCH
+───────────────────
+Change Status to "finished" → shows ✅ FT badge with final score.
+
+HOW TO DELETE A MATCH
+──────────────────────
+Click 🗑 button on the match row → confirm delete.
+Note: This is permanent and cannot be undone.
+
+TEAM LOGO TIPS
+──────────────
+- Use a direct image URL (ending in .jpg, .png, .webp, .svg)
+- If no logo URL is given, the app automatically shows team initials
+- Recommended image size: 64×64px or higher, square format
+- Free logo sources: Wikipedia, club official websites, Sofascore
+
+================================================================
+  SECTION 2: STREAM SERVERS (PLAYER TYPES)
+================================================================
+
+Each match can have multiple stream servers. For each server you
+need to set:
+  1. Label    — Display name, e.g. "Server 1", "HD Stream"
+  2. Type     — One of 4 options (see below)
+  3. URL/Code — The link or code for that stream
+
+STREAM TYPE 1: Redirect Link  🔗
+─────────────────────────────────
+Type: redirect
+What it does: Opens the URL in a new browser tab.
+Use when: You want to send users to an external streaming website.
+
+Example URL:
+  https://streameast.xyz/football
+
+Best for: External streaming sites, YouTube links, etc.
+
+
+STREAM TYPE 2: M3U8 Stream  📺
+────────────────────────────────
+Type: m3u8
+What it does: Opens a full-screen video player inside the app
+              and plays the HLS/M3U8 stream directly.
+Use when: You have a direct .m3u8 HLS stream URL.
+
+Example URL:
+  https://live.example.com/stream/football.m3u8
+  https://cdn.example.com/hls/match123/index.m3u8
+
+Features:
+  - Built-in HLS.js player
+  - Loading spinner while buffering
+  - Retry button if stream fails
+  - Fullscreen button
+  - Works on iOS natively (Safari)
+
+Best for: Direct live streams, IPTV m3u8 links
+
+
+STREAM TYPE 3: iFrame Embed  🖥️
+─────────────────────────────────
+Type: iframe
+What it does: Embeds an external player inside the app in a
+              full-screen iframe.
+Use when: You have an embed URL from a streaming platform.
+
+Example URL:
+  https://embedsb.com/e/abc123
+  https://daddylive.mp/embed/stream-100.php
+
+Best for: Embed links from streaming sites, Dailymotion embeds
+
+
+STREAM TYPE 4: HTML Code  💻
+──────────────────────────────
+Type: html
+What it does: Renders raw HTML code inside the player screen.
+Use when: You have a custom embed code (like a <video> tag,
+          or a player script from a streaming provider).
+
+Example code:
+  <video src="https://example.com/live.mp4" controls autoplay></video>
+
+  or:
+
+  <script src="https://player.example.com/embed.js"></script>
+  <div id="player-container" data-id="12345"></div>
+
+Best for: Custom embed codes, script-based players
+
+
+HOW TO ADD STREAM SERVERS (ADMIN PANEL)
+────────────────────────────────────────
+1. Open match modal (Add or Edit)
+2. Scroll to "Stream Servers" section
+3. Click "+ Add Server Link"
+4. Fill in:
+   - Label field: Name of the server (e.g. "Server 1" or "HD")
+   - Type dropdown: Choose one of the 4 types above
+   - URL/Code field: Paste the URL or HTML code
+5. Repeat for multiple servers
+6. Click "Save Match"
+
+Tip: Add multiple server types for the same match so users
+     can switch if one doesn't work.
+
+
+================================================================
+  SECTION 3: MANAGING NEWS ARTICLES
+================================================================
+
+HOW TO ADD AN ARTICLE
+──────────────────────
+1. Go to "News" tab → click "+ Add Article"
+2. Fill in the fields
+3. Choose article type (Write or Link)
+4. Click "Save Article"
+
+NEWS FIELDS
+───────────
+Title            Headline of the article
+Category         Select: Match Report, Transfer News, Analysis, etc.
+Emoji            Icon shown on card if no thumbnail (e.g. ⚽)
+Thumbnail URL    Image URL for the card preview (shown in app)
+Article Type     Choose: Write Article OR External Link
+
+ARTICLE TYPE: Write Article (✏️)
+──────────────────────────────────
+Write your own article directly in the admin panel.
+The article opens inside the app (no browser redirect).
+Use blank lines between paragraphs — each blank line becomes
+a new paragraph in the app reader.
+
+ARTICLE TYPE: External Link (🔗)
+──────────────────────────────────
+Paste a URL to an external article (BBC Sport, Sky Sports, etc.)
+When the user taps the card, the link opens in their browser.
+
+THUMBNAIL TIPS
+──────────────
+- Paste any image URL — a preview appears immediately in the modal
+- Recommended ratio: 16:9 or wider
+- If no thumbnail, the gradient + emoji is shown instead
+
+GRADIENTS (Card Background)
+────────────────────────────
+Purple (UCL)      → Champions League style
+Blue (Champions)  → Dark blue
+Red (Barcelona)   → Red/maroon
+Orange (ISL)      → Indian Super League style
+Green (Analysis)  → Tactical/analysis feel
+Red (Man Utd)     → Bright red
+Dark Blue         → Deep navy
+Gold              → Trophy/award feel
+
+HOW TO DELETE AN ARTICLE
+──────────────────────────
+Click 🗑 Delete on the article card → confirm.
+
+
+================================================================
+  SECTION 4: MANAGING LEAGUES
+================================================================
+
+Default leagues built-in (no setup needed):
+  EPL        → Premier League (England)
+  UCL        → Champions League (Europe)
+  LALIGA     → La Liga (Spain)
+  BUNDESLIGA → Bundesliga (Germany)
+  SERIEA     → Serie A (Italy)
+  ISL        → Indian Super League (India)
+  LIGUE1     → Ligue 1 (France)
+
+HOW TO ADD A CUSTOM LEAGUE
+────────────────────────────
+1. Go to "Leagues" tab → click "+ Add League"
+2. Fill in:
+   - League ID: Short unique key (e.g. "AFL", "J1")
+   - Name: Full name (e.g. "A-League Football")
+   - Emoji: Flag or symbol (e.g. 🦘)
+   - Country: e.g. "Australia"
+   - Color: Hex color for the league theme (e.g. #ff6600)
+   - Logo URL: Optional league badge image
+3. Click "Save League"
+
+Note: Once you add a League ID, use that same ID in the "League"
+dropdown when creating matches.
+
+
+================================================================
+  SECTION 5: PUSH NOTIFICATIONS
+================================================================
+
+SETUP REQUIREMENTS
+───────────────────
+1. The app must be deployed on HTTPS (not localhost)
+2. Users must click "Allow Notifications" in the app
+3. You need your FCM Server Key (Legacy) from Firebase Console
+   → Firebase Console → Project Settings → Cloud Messaging
+   → Enable Legacy API → Copy Server Key
+
+HOW NOTIFICATIONS WORK IN THE APP
+───────────────────────────────────
+- After 4 seconds on first visit, a prompt slides up:
+  "Stay Updated on Every Match! ⚡ Allow / Later"
+- If user allows, their device token is saved to Firestore
+  under the "fcm_tokens" collection
+- Tokens appear in the admin panel Notifications tab
+
+HOW TO SEND A BROADCAST NOTIFICATION
+──────────────────────────────────────
+1. Go to admin.html → Notifications tab
+2. Paste your FCM Server Key in the field
+3. Fill in:
+   - Title: e.g. "⚽ LIVE NOW"
+   - Body: e.g. "Arsenal vs Man City has kicked off!"
+   - Click URL: Where to go when user taps (optional)
+4. Click "📡 Broadcast to All Users"
+
+The system:
+  a) Sends to the "zetasports_all" FCM topic
+  b) Also sends to all individually stored tokens
+  This ensures maximum delivery coverage.
+
+SUBSCRIBER MANAGEMENT
+──────────────────────
+- View all subscribers in the Notifications tab
+- Each row shows: Platform (Mobile/Desktop), Date subscribed, Token
+- Click 🗑 to remove a specific token
+
+
+================================================================
+  SECTION 6: FIRESTORE DATA SCHEMA
+================================================================
+
+COLLECTION: matches/{matchId}
+──────────────────────────────
+Field           Type      Example
+─────────────── ───────── ─────────────────────────────────────
+homeTeam        string    "Arsenal"
+awayTeam        string    "Manchester City"
+home            string    "ARS"
+away            string    "MCI"
+homeLogo        string    "https://upload.wikimedia.org/..."
+awayLogo        string    "https://upload.wikimedia.org/..."
+leagueId        string    "EPL"
+leagueName      string    "Premier League"
+status          string    "live" | "upcoming" | "ht" | "finished"
+kickoffDate     string    "2026-05-12"
+kickoffIST      string    "21:30"
+homeScore       number    2  (null for upcoming)
+awayScore       number    1  (null for upcoming)
+minute          string    "67'"  (live matches only)
+featured        boolean   true  (shows in home banner)
+servers         array     [{label, type, url}]
+createdAt       timestamp Auto-set on creation
+updatedAt       timestamp Auto-set on each update
+
+servers array item:
+  label   string   "Server 1"
+  type    string   "m3u8" | "iframe" | "html" | "redirect"
+  url     string   The stream URL or HTML code
+
+
+COLLECTION: news/{newsId}
+──────────────────────────
+Field           Type      Example
+─────────────── ───────── ─────────────────────────────────────
+title           string    "Arsenal Win Thriller vs Man City"
+category        string    "Match Report"
+emoji           string    "⚽"
+thumbnailUrl    string    "https://example.com/image.jpg"
+gradient        string    "linear-gradient(135deg,#1a0a2e,#3d195b)"
+articleType     string    "internal" | "external"
+content         string    Full article text (internal only)
+articleUrl      string    "https://bbc.com/sport/..." (external only)
+publishedAt     timestamp Auto or manually set
+
+
+COLLECTION: leagues/{leagueId}
+────────────────────────────────
+Field           Type      Example
+─────────────── ───────── ─────────────────────────────────────
+name            string    "Premier League"
+emoji           string    "⚽"
+country         string    "England"
+color           string    "#3d195b"
+logo            string    "https://example.com/logo.png"
+
+
+COLLECTION: fcm_tokens/{token}
+────────────────────────────────
+Field           Type      Example
+─────────────── ───────── ─────────────────────────────────────
+token           string    "fXY3..."  (auto-saved)
+platform        string    "mobile" | "desktop"
+subscribedAt    timestamp Auto-set when user allows notifications
+
+
+================================================================
+  SECTION 7: FIRESTORE SECURITY RULES
+================================================================
+
+Recommended rules (Firebase Console → Firestore → Rules):
+
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+
+      // Public read for app content
+      match /matches/{id}   { allow read: if true; allow write: if false; }
+      match /news/{id}      { allow read: if true; allow write: if false; }
+      match /leagues/{id}   { allow read: if true; allow write: if false; }
+
+      // Token collection: users can write their own token
+      match /fcm_tokens/{token} {
+        allow read: if false;
+        allow write: if true;
+      }
+    }
+  }
+
+Note: The admin panel uses the Firebase client SDK and writes
+directly to Firestore. For full security, add Firebase
+Authentication to the admin panel in future.
+
+
+================================================================
+  QUICK REFERENCE — COMMON TASKS
+================================================================
+
+Task                          Steps
+──────────────────────────────────────────────────────────────
+Add a live match              Matches → +Add → Status: live → Save
+Update score                  Matches → ✏️ Edit → change scores → Save
+Mark half time                Edit match → Status: ht → Save
+End a match                   Edit match → Status: finished → Save
+Add M3U8 stream               Edit match → Add Server → Type: M3U8
+Add iFrame stream             Edit match → Add Server → Type: iFrame
+Write an article              News → +Add → ✏️ Write Article tab
+Link external article         News → +Add → 🔗 External Link tab
+Send notification             Notifications → Fill form → Broadcast
+View subscriber count         Notifications tab → stat cards at top
+
+
+================================================================
+  PROJECT INFO
+================================================================
+
+App Name:        ZETASPORTS
+Version:         2.0
+Theme:           Dark Blue (#2979ff accent)
+Framework:       Vanilla JS SPA
+Database:        Firebase Firestore (project: zeta-sports)
+Push:            FCM (VAPID key configured)
+PWA:             Yes (manifest.json + sw.js)
+Player:          HLS.js for M3U8, native iframe for embeds
+Admin URL:       /admin.html  (PIN protected)
+Files:
+  index.html      Main app shell
+  admin.html      Admin panel
+  app.js          Main app logic
+  admin.js        Admin panel logic
+  style.css       App styles
+  firebase-config.js  Firebase credentials + VAPID key
+  manifest.json   PWA manifest
+  sw.js           Service worker (push notifications)
+  ZETASPORTS_DATA_GUIDE.txt  This file
+
+================================================================
+  END OF GUIDE
+================================================================

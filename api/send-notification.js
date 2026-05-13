@@ -1,10 +1,17 @@
 const admin = require('firebase-admin');
 
 if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+  try {
+    const saVar = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (!saVar) throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is missing in Vercel settings.');
+    
+    const serviceAccount = JSON.parse(saVar);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+  } catch (e) {
+    console.error('Initialization Error:', e);
+  }
 }
 
 module.exports = async (req, res) => {

@@ -91,6 +91,15 @@ function formatLocalTime(dateStr, timeStr) {
   }
 }
 
+function formatDate(val) {
+  if (!val) return '';
+  // Handle Firestore Timestamp
+  if (val.seconds) {
+    return new Date(val.seconds * 1000).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  return val;
+}
+
 function formatTime12(time24) {
   if(!time24) return '';
   const p = time24.split(':');
@@ -282,6 +291,7 @@ function go(screen, params = {}) {
   else if (screen === 'matches') showMatches();
   else if (screen === 'detail')  showDetail(params.id);
   else if (screen === 'news')    showNews();
+  else if (screen === 'standings') showStandings();
   else if (screen === 'leagues') showLeagues();
 }
 
@@ -330,11 +340,7 @@ function showHome() {
       <div class="trending-container">
         <div class="section-header"><i class="bolt">⚡</i><h2>Trending Matches</h2></div>
         <div class="trending-scroll">
-          ${trending.map(m => `
-            <div class="trending-card" onclick="go('detail',{id:'${m.id}'})">
-              ${matchCard(m, true)}
-            </div>
-          `).join('')}
+          ${trending.map(m => trendingBanner(m)).join('')}
         </div>
       </div>
     ` : ''}
@@ -426,7 +432,7 @@ function newsCardSm(n) {
     </div>
     <div class="news-card-body">
       <div class="news-card-title">${n.title}</div>
-      <div class="news-card-meta">${n.publishedAt||''}</div>
+      <div class="news-card-meta">${formatDate(n.publishedAt)}</div>
     </div>
   </div>`;
 }
@@ -460,6 +466,39 @@ function leagueGroup(lid, ms) {
     </div>
     ${ms.map(matchCard).join('')}
   </div>`;
+}
+
+function trendingBanner(m) {
+  const isLive = m.status === 'live';
+  return `
+    <div class="trending-banner" onclick="go('detail',{id:'${m.id}'})">
+      <div class="tb-overlay"></div>
+      <div class="tb-content">
+        <div class="tb-top">
+          <span class="tb-league">${getLeague(m.leagueId).name.toUpperCase()}</span>
+          ${isLive ? `<span class="tb-live">● ${m.minute}</span>` : `<span class="tb-upcoming">UPCOMING</span>`}
+        </div>
+        <div class="tb-main">
+          <div class="tb-team">
+            <div class="tb-crest-wrap">${crest(m.home, 48, m.homeLogo)}</div>
+            <span class="tb-team-name">${getDisplayName(m.homeTeam, m.home)}</span>
+          </div>
+          <div class="tb-center">
+            ${m.status === 'upcoming' ? `<div class="tb-vs">VS</div>` : `<div class="tb-score">${m.homeScore} - ${m.awayScore}</div>`}
+            <div class="tb-time">${formatLocalTime(m.kickoffDate, m.kickoffIST)}</div>
+          </div>
+          <div class="tb-team">
+            <div class="tb-crest-wrap">${crest(m.away, 48, m.awayLogo)}</div>
+            <span class="tb-team-name">${getDisplayName(m.awayTeam, m.away)}</span>
+          </div>
+        </div>
+        <div class="tb-footer">
+          <span class="tb-date">${m.kickoffDate}</span>
+          <span class="tb-watch">WATCH NOW →</span>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function matchCard(m, compact=false) {
@@ -771,7 +810,7 @@ function newsFullCard(n) {
   return `<div class="news-full-card" onclick="${action}">
     ${thumb}
     ${n.thumbnailUrl?`<div class="nfc-cat-over"><span class="nfc-cat" style="background:rgba(0,0,0,.75);color:var(--accent);border:1px solid var(--border2)">${n.category}</span></div>`:''}
-    <div class="nfc-body"><div class="nfc-title">${n.title}</div><div class="nfc-meta">${n.publishedAt||''} · ${label}</div></div>
+    <div class="nfc-body"><div class="nfc-title">${n.title}</div><div class="nfc-meta">${formatDate(n.publishedAt)} · ${label}</div></div>
   </div>`;
 }
 
@@ -795,7 +834,7 @@ function showArticle(id) {
       <div class="article-body">
         <div class="article-cat">${n.category}</div>
         <h1 class="article-title">${n.title}</h1>
-        <div class="article-date">${n.publishedAt||''}</div>
+        <div class="article-date">${formatDate(n.publishedAt)}</div>
         <div class="article-content">${paragraphs||'<p class="article-p" style="color:var(--text2)">No content available.</p>'}</div>
       </div>
     </div>`;

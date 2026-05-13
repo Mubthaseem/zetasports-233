@@ -151,8 +151,15 @@ function formatTime12(time24) {
 
   document.getElementById('dash-matches').innerHTML = sorted.slice(0,8).map(m => `
     <tr>
-      <td><b>${m.homeTeam||m.home}</b></td>
-      <td>${m.awayTeam||m.away}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <img src="${m.homeLogo}" style="width:18px;height:18px;object-fit:contain" onerror="this.src='https://placehold.co/18x18/0d1428/2979ff?text=${m.home}'">
+          <b>${m.homeTeam||m.home}</b>
+          <span style="color:var(--acc);font-weight:700">vs</span>
+          <b>${m.awayTeam||m.away}</b>
+          <img src="${m.awayLogo}" style="width:18px;height:18px;object-fit:contain" onerror="this.src='https://placehold.co/18x18/0d1428/2979ff?text=${m.away}'">
+        </div>
+      </td>
       <td>${LEAGUES_MAP[m.leagueId]||m.leagueId||'—'}</td>
       <td>${formatTime12(m.kickoffIST)||'—'} IST</td>
       <td>${statusBadge(m.status,m.minute)}</td>
@@ -175,8 +182,18 @@ function renderMatchTable() {
   document.getElementById('matches-tbody').innerHTML = sorted.length
     ? sorted.map(m=>`
     <tr>
-      <td><b>${m.homeTeam||m.home}</b></td>
-      <td>${m.awayTeam||m.away}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <img src="${m.homeLogo}" style="width:20px;height:20px;object-fit:contain" onerror="this.src='https://placehold.co/20x20/0d1428/2979ff?text=${m.home}'">
+          <b>${m.homeTeam||m.home}</b>
+        </div>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <img src="${m.awayLogo}" style="width:20px;height:20px;object-fit:contain" onerror="this.src='https://placehold.co/20x20/0d1428/2979ff?text=${m.away}'">
+          <b>${m.awayTeam||m.away}</b>
+        </div>
+      </td>
       <td>${LEAGUES_MAP[m.leagueId]||m.leagueId||'—'}</td>
       <td>${m.kickoffDate||'—'}</td>
       <td>${formatTime12(m.kickoffIST)||'—'}</td>

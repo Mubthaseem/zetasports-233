@@ -114,20 +114,87 @@ img{display:block;max-width:100%}
 }
 .trending-scroll {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   overflow-x: auto;
-  padding: 0 16px 8px;
-  scroll-snap-type: x mandatory;
+  padding: 0 16px 12px;
+  scrollbar-width: none;
 }
 .trending-scroll::-webkit-scrollbar { display: none; }
-.trending-card {
-  flex: 0 0 280px;
-  scroll-snap-align: center;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 14px;
+
+.trending-banner {
+  flex-shrink: 0;
+  width: 320px;
+  height: 170px;
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0d1f4a 0%, #05080f 100%);
+  border: 1px solid var(--border2);
+  cursor: pointer;
+  transition: transform 0.2s ease;
 }
+.trending-banner:hover { transform: translateY(-4px); }
+.tb-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(41,121,255,0.1), transparent);
+}
+.tb-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+}
+.tb-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.tb-league { font-size: 10px; font-weight: 800; color: var(--text3); letter-spacing: 1px; }
+.tb-live { background: var(--red); color: white; padding: 3px 8px; border-radius: 20px; font-size: 9px; font-weight: 900; }
+.tb-upcoming { color: var(--accent); font-size: 9px; font-weight: 800; opacity: 0.8; }
+
+.tb-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  margin: 10px 0;
+}
+.tb-team {
+  width: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.tb-crest-wrap {
+  width: 48px;
+  height: 48px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.tb-team-name { font-size: 12px; font-weight: 700; color: white; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+
+.tb-center { text-align: center; }
+.tb-vs { font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 800; color: var(--text3); }
+.tb-score { font-family: 'Rajdhani', sans-serif; font-size: 32px; font-weight: 800; color: white; letter-spacing: 2px; }
+.tb-time { font-size: 11px; font-weight: 700; color: var(--accent2); margin-top: 2px; }
+
+.tb-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+}
+.tb-date { color: var(--text3); }
+.tb-watch { color: var(--accent2); font-weight: 800; letter-spacing: 0.5px; }
 
 /* ── Date Filter ────────────────────────────────────────────── */
 .date-filter {

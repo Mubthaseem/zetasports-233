@@ -98,6 +98,18 @@ tr:hover td{background:rgba(41,121,255,.04)}
 .remove-server{background:rgba(255,23,68,.15);border:1px solid rgba(255,23,68,.25);color:#ff6b6b;border-radius:8px;padding:0;width:32px;height:36px;cursor:pointer;font-size:16px;line-height:1}
 .add-server-btn{background:rgba(41,121,255,.1);border:1px dashed var(--border);color:var(--acc2);padding:8px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;width:100%;margin-top:2px}
 .modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border);position:sticky;bottom:0;background:#0c1221}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .sidebar { width: 60px; }
+  .sb-logo span, .sb-item span:not(.ico), .sb-logout button span { display: none; }
+  .sb-item { justify-content: center; padding: 12px; }
+  .main { margin-left: 60px; padding: 16px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  th:nth-child(3), td:nth-child(3), th:nth-child(4), td:nth-child(4) { display: none; } /* Hide League/Date on mobile tables */
+  .page-title { font-size: 18px; }
+  .btn-sm { padding: 4px 8px; font-size: 11px; }
+}
 .form-check{display:flex;align-items:center;gap:10px;cursor:pointer}
 .form-check input[type=checkbox]{width:18px;height:18px;accent-color:var(--acc)}
 

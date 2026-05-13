@@ -139,15 +139,6 @@ function renderDashboard() {
     const dB = new Date((b.kickoffDate||'2099-01-01')+'T'+(b.kickoffIST||'00:00'));
     return dA - dB;
   });
-function formatTime12(time24) {
-  if(!time24) return '';
-  const p = time24.split(':');
-  if(p.length < 2) return time24;
-  let h = parseInt(p[0]);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12 || 12;
-  return `${h}:${p[1]} ${ampm}`;
-}
 
   document.getElementById('dash-matches').innerHTML = sorted.slice(0,8).map(m => `
     <tr>
@@ -167,6 +158,27 @@ function formatTime12(time24) {
         <button class="btn btn-sm btn-edit" onclick="goPage('matches');openMatchModal('${m.id}')">Edit</button>
       </td>
     </tr>`).join('');
+}
+
+function statusBadge(status, minute) {
+  if (status === 'live') return `<span class="badge badge-live">🔴 ${minute || ''}</span>`;
+  if (status === 'ht') return `<span class="badge badge-ht">⏸ HT</span>`;
+  if (status === 'finished') return `<span class="badge badge-finished">FT</span>`;
+  return `<span class="badge badge-upcoming">Upcoming</span>`;
+}
+
+function formatTime12(time24) {
+  if(!time24) return '';
+  const p = time24.split(':');
+  if(p.length < 2) return time24;
+  let h = parseInt(p[0]);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${p[1]} ${ampm}`;
+}
+
+    </tr>`).join('');
+}
 }
 
 /* ── MATCH TABLE ── */

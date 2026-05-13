@@ -719,7 +719,8 @@ async function sendPushNotification() {
       result.style.color = '#00e676';
       showToast('Notification sent to all users!', 'success');
     } else {
-      throw new Error(d.error || 'Failed to send');
+      const detailMsg = d.details ? ` (${d.details})` : '';
+      throw new Error((d.error || 'Failed to send') + detailMsg);
     }
   } catch(e) {
     console.error('Send error:', e);

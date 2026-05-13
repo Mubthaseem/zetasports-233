@@ -699,7 +699,7 @@ function buildPlayerHTML(s, m) {
   } else if (s.type === 'iframe') {
     videoContent = `<iframe src="${s.url}" class="player-iframe"
       allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"
-      sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>`;
+      sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts"></iframe>`;
   } else if (s.type === 'html') {
     videoContent = `<div class="player-html-wrap">${s.url}</div>`;
   }
@@ -788,8 +788,7 @@ function switchServer(encoded) {
     vp.innerHTML = `<div class="player-m3u8-wrap"><video id="hls-video" controls autoplay playsinline style="width:100%;height:100%;background:#000"></video><div class="player-loading" id="player-loading"><div class="player-spinner"></div><div style="margin-top:10px;font-size:12px;color:#90caf9">Loading…</div></div></div><div class="player-overlay-btns"><button class="pcb-btn" onclick="retryHLS()">🔄 Retry</button><button class="pcb-btn" onclick="togglePlayerFullscreen()">⛶ Fullscreen</button></div>`;
     document.getElementById('player-overlay').dataset.m3u8 = s.url;
     setTimeout(()=>initHLS(s.url),200);
-  } else if (s.type==='iframe') {
-    vp.innerHTML=`<iframe src="${s.url}" class="player-iframe" allowfullscreen allow="autoplay;encrypted-media"></iframe>`;
+    vp.innerHTML=`<iframe src="${s.url}" class="player-iframe" allowfullscreen allow="autoplay;encrypted-media" sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts"></iframe>`;
   } else if (s.type==='html') {
     vp.innerHTML=`<div class="player-html-wrap">${s.url}</div>`;
   }

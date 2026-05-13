@@ -678,99 +678,52 @@ async function deleteToken(id) {
 }
 
 async function sendPushNotification() {
-  const serverKey = document.getElementById('n-serverKey').value.trim();
   const title     = document.getElementById('n-ntitle').value.trim();
   const body      = document.getElementById('n-nbody').value.trim();
-  const clickUrl  = document.getElementById('n-nurl').value.trim() || '/';
+  const imageUrl  = document.getElementById('n-nurl').value.trim();
   const result    = document.getElementById('notif-result');
 
-  if (!serverKey) { showToast('Paste your FCM Server Key first','error'); return; }
-  if (!title)     { showToast('Notification title is required','error'); return; }
-  if (!body)      { showToast('Notification body is required','error'); return; }
+  if (!title) { showToast('Notification title is required','error'); return; }
+  if (!body)  { showToast('Notification body is required','error'); return; }
 
-  result.textContent = '📡 Broadcasting...';
+  result.textContent = '📡 Broadcasting via Secure API...';
   result.style.color = '#90caf9';
 
-  const payload = (target) => JSON.stringify({
-    [typeof target === 'string' && target.startsWith('/topics/') ? 'to' : 'registration_ids']: target,
-    notification: { title, body, icon: '/icon-192.png' },
-    webpush: {
-      notification: { title, body, icon: '/icon-192.png', badge: '/icon-192.png' },
-      fcm_options: { link: clickUrl }
-    }
-  });
-
-  const fcmSend = async (target) => {
-    const r = await fetch('https://fcm.googleapis.com/fcm/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'key=' + serverKey },
-      body: payload(target)
-    });
-    return r.json();
-  };
-
-  let ok = 0, fail = 0;
-
-  // ── Send to topic (reaches anyone already on it) ──
   try {
-    const d = await fcmSend('/topics/zetasports_all');
-    if (d.message_id) ok++;
-    else if (d.error) { console.warn('Topic send:', d.error); fail++; }
-  } catch(e) { console.warn('Topic send error:', e); }
-
-  // ── Send to all individually stored tokens ──
-  const tokens = allTokens.map(t => t.token).filter(Boolean);
-  if (tokens.length) {
-    const batches = [];
-    for (let i = 0; i < tokens.length; i += 500) batches.push(tokens.slice(i, i + 500));
-    for (const batch of batches) {
-      try {
-        const d = await fcmSend(batch);
-        if (d.error) { fail += batch.length; continue; }
-        ok   += d.success || 0;
-        fail += d.failure || 0;
-      } catch(e) { fail += batch.length; }
+    const res = await fetch('/api/send-notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body, imageUrl })
+    });
+    
+    const d = await res.json();
+    if (d.success) {
+      result.textContent = `✅ Broadcast sent! (Message ID: ${d.messageId.split('/').pop()})`;
+      result.style.color = '#00e676';
+      showToast('Notification sent to all users!', 'success');
+    } else {
+      throw new Error(d.error || 'Failed to send');
     }
-  }
-
-  if (ok > 0) {
-    result.textContent = `✅ Broadcast sent! (${tokens.length} tokens + topic)`;
-    result.style.color = '#00e676';
-    showToast('Notification sent to all users!', 'success');
-  } else {
-    result.textContent = '❌ Send failed. Is your Server Key correct?';
+  } catch(e) {
+    console.error('Send error:', e);
+    result.textContent = '❌ Send failed: ' + e.message;
     result.style.color = '#ff6b6b';
-    showToast('Send failed — verify Server Key', 'error');
+    showToast('Send failed: ' + e.message, 'error');
   }
 }
 
 async function autoSendLiveNotification(m) {
   const title = `🚨 Match Started: ${m.homeTeam} vs ${m.awayTeam}`;
   const body = `Live stream is now available for the ${m.leagueName} clash! Tap to watch now.`;
-  
-  // Reuse existing notification logic but for internal trigger
-  const serverKey = localStorage.getItem('zs_fcm_key') || '';
-  if (!serverKey) {
-    console.warn('[ZETASPORTS] Auto-notif failed: No FCM Server Key stored in local browser.');
-    return;
-  }
+  const imageUrl = m.homeLogo || m.awayLogo || '';
 
   try {
-    const payload = JSON.stringify({
-      to: '/topics/zetasports_all',
-      notification: { title, body, icon: '/icon-192.png' },
-      webpush: {
-        notification: { title, body, icon: '/icon-192.png' },
-        fcm_options: { link: '/' }
-      }
-    });
-    
-    await fetch('https://fcm.googleapis.com/fcm/send', {
+    await fetch('/api/send-notification', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'key=' + serverKey },
-      body: payload
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body, imageUrl })
     });
-    console.info('[ZETASPORTS] Auto-notif sent successfully');
+    console.info('[ZETASPORTS] Auto-notif sent successfully via Secure API');
   } catch(e) { console.error('[ZETASPORTS] Auto-notif error:', e); }
 }
 

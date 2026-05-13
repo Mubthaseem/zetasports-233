@@ -455,6 +455,52 @@ input:checked + .slider:before{transform:translateX(20px);background:var(--acc)}
           </div>
         </div>
 
+        <!-- AI Configuration -->
+        <div class="settings-card">
+          <div class="settings-hdr">
+            <div class="settings-title">✨ AI Match Analyst Configuration</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Primary AI Provider</label>
+            <select class="form-input" id="s-aiProvider" onchange="toggleAIInputs()">
+              <option value="gemini">Google Gemini (Free - Pro Analysis)</option>
+              <option value="groq">Groq AI (Free - Lightning Fast)</option>
+            </select>
+          </div>
+          
+          <div id="ai-gemini-box">
+            <div class="form-group">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <label class="form-label" style="margin:0">Gemini API Key</label>
+                <a href="https://aistudio.google.com/" target="_blank" style="font-size:11px;color:var(--acc2);text-decoration:none">Get Free Key ↗</a>
+              </div>
+              <input class="form-input" id="s-geminiKey" type="password" placeholder="Paste Gemini Key..."/>
+            </div>
+          </div>
+
+          <div id="ai-groq-box" style="display:none">
+            <div class="form-group">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <label class="form-label" style="margin:0">Groq API Key</label>
+                <a href="https://console.groq.com/keys" target="_blank" style="font-size:11px;color:var(--acc2);text-decoration:none">Get Free Key ↗</a>
+              </div>
+              <input class="form-input" id="s-groqKey" type="password" placeholder="Paste Groq Key (starts with gsk_)..."/>
+            </div>
+          </div>
+          
+          <script>
+            function toggleAIInputs() {
+              const p = document.getElementById('s-aiProvider').value;
+              document.getElementById('ai-gemini-box').style.display = p === 'gemini' ? 'block' : 'none';
+              document.getElementById('ai-groq-box').style.display = p === 'groq' ? 'block' : 'none';
+            }
+            // Also run once on load
+            setTimeout(toggleAIInputs, 1000);
+          </script>
+          
+          <div style="font-size:11px;color:var(--text3);margin-top:8px">Expert tactical insights and match previews powered by AI.</div>
+        </div>
+
         <div style="height:30px"></div>
         <button class="btn btn-primary" style="width:100%; padding:14px" onclick="saveAppSettings()">💾 Save All App Settings</button>
       </div>
@@ -554,16 +600,24 @@ input:checked + .slider:before{transform:translateX(20px);background:var(--acc)}
         <div class="servers-list" id="servers-list"></div>
         <button class="add-server-btn" onclick="addServerRow()">+ Add Server Link</button>
       </div>
+      <!-- APK / NATIVE APP STREAMING -->
       <div class="form-group">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <label class="form-label" style="margin:0">Match Preview / Description</label>
-          <button class="btn btn-edit" onclick="generateAIPreview()" style="padding:4px 10px;font-size:11px">✨ Generate with AI</button>
+          <label class="form-label" style="margin:0;color:var(--acc2);font-weight:700">📱 FLUTTER APK STREAM</label>
+          <button type="button" class="btn btn-sm" onclick="patchFlutterStream()" style="background:var(--acc2);color:#000;font-size:10px;padding:4px 12px;font-weight:800;border-radius:6px">PATCH APK ⚡</button>
         </div>
-        <textarea class="form-input form-textarea" id="f-preview" placeholder="Write a match preview..., H2H stats, key players to watch...
+        <input class="form-input" id="f-apkStream" placeholder="Direct M3U8 / HLS Link for Native App..." style="border-color:rgba(41, 121, 255, 0.3)"/>
+      </div>
 
-Example: Arsenal face Manchester City in a crucial title showdown. The Gunners are unbeaten in 8 games while City look to close the gap.
-
-Key battles: Saka vs Walker, Haaland vs White." style="min-height:100px"></textarea>
+      <div class="form-group">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <label class="form-label" style="margin:0">Match Preview / Analysis</label>
+          <button type="button" class="btn btn-primary" id="btn-ai-gen" onclick="generateAIPreview()" 
+            style="background:linear-gradient(135deg, #2979ff, #1565c0); border:none; padding:6px 14px; font-size:11px; display:flex; align-items:center; gap:6px">
+            ✨ AI Match Analyst
+          </button>
+        </div>
+        <textarea class="form-input form-textarea" id="f-preview" placeholder="Use the AI Analyst above to auto-generate form, key players, and predictions..." style="min-height:120px"></textarea>
       </div>
     </div>
     <div class="modal-footer">
@@ -715,5 +769,41 @@ Key battles: Saka vs Walker, Haaland vs White." style="min-height:100px"></texta
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="admin.js"></script>
+    <!-- IPL SYNC MODAL -->
+    <div class="modal-overlay" id="ipl-sync-modal">
+      <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-hdr">
+          <h2 class="modal-title">IPL Fixtures Finder</h2>
+          <button class="modal-close" onclick="closeModal('ipl-sync-modal')">✕</button>
+        </div>
+        <div style="margin-bottom: 15px; font-size: 13px; color: #90caf9;">
+          Select the matches you want to add to your app.
+        </div>
+        <div id="ipl-fixtures-list" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+          <div style="text-align: center; padding: 40px; color: var(--text3);">Loading IPL schedule...</div>
+        </div>
+        <div class="modal-ftr">
+          <button class="btn" onclick="closeModal('ipl-sync-modal')">Close</button>
+        </div>
+      </div>
+    </div>
+    <!-- FOOTBALL SYNC MODAL -->
+    <div class="modal-overlay" id="football-sync-modal">
+      <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-hdr">
+          <h2 class="modal-title">Football Fixtures Finder</h2>
+          <button class="modal-close" onclick="closeModal('football-sync-modal')">✕</button>
+        </div>
+        <div style="margin-bottom: 15px; font-size: 13px; color: #90caf9;">
+          Select the football matches you want to add.
+        </div>
+        <div id="football-fixtures-list" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+          <div style="text-align: center; padding: 40px; color: var(--text3);">Loading fixtures...</div>
+        </div>
+        <div class="modal-ftr">
+          <button class="btn" onclick="closeModal('football-sync-modal')">Close</button>
+        </div>
+      </div>
+    </div>
 </body>
 </html>

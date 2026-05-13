@@ -362,12 +362,56 @@ input:checked + .slider:before{transform:translateX(20px);background:var(--acc)}
 
         <div style="margin-top:30px; padding-top:20px; border-top:1px solid var(--border)">
           <div style="font-size:13px;font-weight:700;color:var(--acc2);margin-bottom:16px">💰 Monetization & Ads</div>
-          <div class="form-group" style="display:flex; align-items:center; gap:12px; background:rgba(41,121,255,0.05); padding:10px; border-radius:10px;">
-            <label class="form-label" style="margin:0; flex:1">Enable AdMob Ads</label>
+          
+          <!-- Master Toggle -->
+          <div class="form-group" style="display:flex; align-items:center; gap:12px; background:rgba(41,121,255,0.08); padding:12px; border-radius:10px; margin-bottom:20px; border:1px solid var(--border);">
+            <div style="flex:1">
+              <label class="form-label" style="margin:0; color:#fff">Total Ads (Master Switch)</label>
+              <div style="font-size:11px; color:#90caf9; margin-top:2px">Enable or disable ALL ads in the app at once.</div>
+            </div>
             <label class="switch">
               <input type="checkbox" id="s-adsEnabled">
               <span class="slider"></span>
             </label>
+          </div>
+
+          <!-- Individual Toggles Grid -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:24px;">
+            <div style="background:var(--bg3); padding:10px; border-radius:10px; display:flex; align-items:center; gap:10px; border:1px solid rgba(255,255,255,0.05)">
+              <label class="form-label" style="margin:0; flex:1; font-size:11px">Banner Ads</label>
+              <label class="switch" style="transform:scale(0.8)">
+                <input type="checkbox" id="s-adsBannerEnabled">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div style="background:var(--bg3); padding:10px; border-radius:10px; display:flex; align-items:center; gap:10px; border:1px solid rgba(255,255,255,0.05)">
+              <label class="form-label" style="margin:0; flex:1; font-size:11px">Interstitial Ads</label>
+              <label class="switch" style="transform:scale(0.8)">
+                <input type="checkbox" id="s-adsInterstitialEnabled">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div style="background:var(--bg3); padding:10px; border-radius:10px; display:flex; align-items:center; gap:10px; border:1px solid rgba(255,255,255,0.05)">
+              <label class="form-label" style="margin:0; flex:1; font-size:11px">App Open Ads</label>
+              <label class="switch" style="transform:scale(0.8)">
+                <input type="checkbox" id="s-adsAppOpenEnabled">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div style="background:var(--bg3); padding:10px; border-radius:10px; display:flex; align-items:center; gap:10px; border:1px solid rgba(255,255,255,0.05)">
+              <label class="form-label" style="margin:0; flex:1; font-size:11px">Native Ads</label>
+              <label class="switch" style="transform:scale(0.8)">
+                <input type="checkbox" id="s-adsNativeEnabled">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div style="background:var(--bg3); padding:10px; border-radius:10px; display:flex; align-items:center; gap:10px; border:1px solid rgba(255,255,255,0.05); grid-column: span 2;">
+              <label class="form-label" style="margin:0; flex:1; font-size:11px">Rewarded Ads</label>
+              <label class="switch" style="transform:scale(0.8)">
+                <input type="checkbox" id="s-adsRewardedEnabled">
+                <span class="slider"></span>
+              </label>
+            </div>
           </div>
           <div class="form-row">
             <div class="form-group">

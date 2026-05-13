@@ -930,12 +930,24 @@ function startTicker() {
 }
 
 /* ── INIT ───────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', ()=>{
-  initFirebase();
-  setupNav();
-  go('home');
-  startTicker();
-  // Hide splash screen after app renders (~2s minimum for animation)
-  const splash = document.getElementById('splash-screen');
-  if (splash) setTimeout(()=>splash.classList.add('hide'), 2000);
+document.addEventListener('DOMContentLoaded', () => {
+  console.info('[ZETASPORTS] Initializing Application...');
+  try {
+    initFirebase();
+    setupNav();
+    go('home');
+    startTicker();
+    console.info('[ZETASPORTS] Init Complete.');
+  } catch (e) {
+    console.error('[ZETASPORTS] Initialization Crash:', e);
+  } finally {
+    // ALWAYS hide splash screen after app renders (~2s minimum for animation)
+    const splash = document.getElementById('splash-screen');
+    if (splash) {
+      setTimeout(() => {
+        splash.classList.add('hide');
+        console.info('[ZETASPORTS] Splash hidden.');
+      }, 2000);
+    }
+  }
 });

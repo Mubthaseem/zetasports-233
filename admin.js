@@ -403,6 +403,9 @@ async function saveMatch() {
     status,
     kickoffDate: document.getElementById('f-kickoffDate').value,
     kickoffIST: document.getElementById('f-kickoffIST').value,
+    homeScore: parseInt(document.getElementById('f-homeScore').value) || 0,
+    awayScore: parseInt(document.getElementById('f-awayScore').value) || 0,
+    minute: document.getElementById('f-minute').value.trim(),
     featured: document.getElementById('f-featured').checked,
     servers,
     preview,
@@ -821,6 +824,11 @@ function renderSettings() {
   document.getElementById('s-admobRewardedId').value = appSettings.admobRewardedId || '';
   document.getElementById('s-admobRewardedInterId').value = appSettings.admobRewardedInterId || '';
   document.getElementById('s-adsEnabled').checked = !!appSettings.adsEnabled;
+  document.getElementById('s-adsBannerEnabled').checked = !!appSettings.adsBannerEnabled;
+  document.getElementById('s-adsInterstitialEnabled').checked = !!appSettings.adsInterstitialEnabled;
+  document.getElementById('s-adsAppOpenEnabled').checked = !!appSettings.adsAppOpenEnabled;
+  document.getElementById('s-adsNativeEnabled').checked = !!appSettings.adsNativeEnabled;
+  document.getElementById('s-adsRewardedEnabled').checked = !!appSettings.adsRewardedEnabled;
 
   previewSettingsLogo('logo');
   previewSettingsLogo('loading');
@@ -880,6 +888,11 @@ async function saveAppSettings() {
     termsUrl: document.getElementById('s-termsUrl').value.trim(),
     copyright: document.getElementById('s-copyright').value.trim(),
     adsEnabled: document.getElementById('s-adsEnabled').checked,
+    adsBannerEnabled: document.getElementById('s-adsBannerEnabled').checked,
+    adsInterstitialEnabled: document.getElementById('s-adsInterstitialEnabled').checked,
+    adsAppOpenEnabled: document.getElementById('s-adsAppOpenEnabled').checked,
+    adsNativeEnabled: document.getElementById('s-adsNativeEnabled').checked,
+    adsRewardedEnabled: document.getElementById('s-adsRewardedEnabled').checked,
     admobBannerId: document.getElementById('s-admobBannerId').value.trim(),
     admobInterstitialId: document.getElementById('s-admobInterstitialId').value.trim(),
     admobAppOpenId: document.getElementById('s-admobAppOpenId').value.trim(),

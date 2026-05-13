@@ -1,20 +1,34 @@
 const admin = require('firebase-admin');
 const axios = require('axios');
 
-// Initialize Firebase Admin using Environment Variables for Vercel security
+// Initialize Firebase Admin
 if (!admin.apps.length) {
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-  const formattedKey = privateKey && privateKey.includes('\\n') 
-    ? privateKey.replace(/\\n/g, '\n') 
-    : privateKey;
+  try {
+    let serviceAccount;
 
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: formattedKey,
-    }),
-  });
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      console.log('[ZETASPORTS] Using full Service Account JSON');
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } else {
+      console.log('[ZETASPORTS] Using individual Environment Variables');
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+      const formattedKey = privateKey && privateKey.includes('\\n') 
+        ? privateKey.replace(/\\n/g, '\n') 
+        : privateKey;
+
+      serviceAccount = {
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: formattedKey,
+      };
+    }
+
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  } catch (err) {
+    console.error('[ZETASPORTS] Firebase Init Error:', err.message);
+  }
 }
 
 const db = admin.firestore();

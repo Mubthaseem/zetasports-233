@@ -475,6 +475,13 @@ input:checked + .slider:before{transform:translateX(20px);background:var(--acc)}
                 <a href="https://aistudio.google.com/" target="_blank" style="font-size:11px;color:var(--acc2);text-decoration:none">Get Free Key ↗</a>
               </div>
               <input class="form-input" id="s-geminiKey" type="password" placeholder="Paste Gemini Key..."/>
+              
+              <label class="form-label" style="margin-top:12px">Select Gemini Model</label>
+              <select class="form-input" id="s-geminiModel">
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fastest)</option>
+                <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest</option>
+                <option value="gemini-1.5-pro">Gemini 1.5 Pro (Most Intelligent)</option>
+              </select>
             </div>
           </div>
 
@@ -485,6 +492,13 @@ input:checked + .slider:before{transform:translateX(20px);background:var(--acc)}
                 <a href="https://console.groq.com/keys" target="_blank" style="font-size:11px;color:var(--acc2);text-decoration:none">Get Free Key ↗</a>
               </div>
               <input class="form-input" id="s-groqKey" type="password" placeholder="Paste Groq Key (starts with gsk_)..."/>
+
+              <label class="form-label" style="margin-top:12px">Select Groq Model</label>
+              <select class="form-input" id="s-groqModel">
+                <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Recommended)</option>
+                <option value="llama-3.1-8b-instant">Llama 3.1 8B (Instant)</option>
+                <option value="mixtral-8x7b-32768">Mixtral 8x7b</option>
+              </select>
             </div>
           </div>
           
@@ -494,8 +508,7 @@ input:checked + .slider:before{transform:translateX(20px);background:var(--acc)}
               document.getElementById('ai-gemini-box').style.display = p === 'gemini' ? 'block' : 'none';
               document.getElementById('ai-groq-box').style.display = p === 'groq' ? 'block' : 'none';
             }
-            // Also run once on load
-            setTimeout(toggleAIInputs, 1000);
+            setTimeout(toggleAIInputs, 500);
           </script>
           
           <div style="font-size:11px;color:var(--text3);margin-top:8px">Expert tactical insights and match previews powered by AI.</div>

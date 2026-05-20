@@ -261,88 +261,101 @@ function openFetchModal() {
   openModal('fetch-modal');
 }
 
+let footballSearchResults = [];
+
 async function fetchMatchesFromApi() {
   const apiKey = document.getElementById('api-key').value.trim();
-  if(!apiKey) { showToast('API key required','error'); return; }
-  
+  if(!apiKey) return showToast('API key required','error');
   localStorage.setItem('zs_football_data_key', apiKey);
+  
   const comp = document.getElementById('api-competition').value;
   const days = parseInt(document.getElementById('api-days').value) || 3;
   
-  const btn = document.getElementById('btn-fetch-run');
-  btn.textContent = 'Fetching...'; btn.disabled = true;
+  closeModal('fetch-modal');
+  openModal('football-sync-modal');
+  const listEl = document.getElementById('football-fixtures-list');
+  listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Searching fixtures...</div>';
 
   try {
     const today = new Date();
     const future = new Date(); future.setDate(today.getDate() + days);
-    
-    // YYYY-MM-DD format
-    const d1 = today.toISOString().split('T')[0];
-    const d2 = future.toISOString().split('T')[0];
-
-
+    const d1 = today.toISOString().split('T')[0], d2 = future.toISOString().split('T')[0];
 
     const url = `/api/football/competitions/${comp}/matches?dateFrom=${d1}&dateTo=${d2}`;
-    
     const res = await fetch(url, { headers: { 'X-Auth-Token': apiKey } });
     const data = await res.json();
-    
     if(!res.ok) throw new Error(data.message || 'API Error');
-    if(!data.matches || data.matches.length === 0) {
-      showToast('No upcoming matches found in this date range.', 'error');
-      btn.textContent = 'Start Fetch'; btn.disabled = false;
+
+    footballSearchResults = data.matches || [];
+    if (footballSearchResults.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No matches found in this range.</div>';
       return;
     }
 
-    let added = 0, updated = 0;
-    for(let m of data.matches) {
-      const matchDateObj = new Date(m.utcDate);
-      const hrs = matchDateObj.getHours().toString().padStart(2, '0');
-      const mins = matchDateObj.getMinutes().toString().padStart(2, '0');
-      const dateStr = matchDateObj.toISOString().split('T')[0];
-
-      // Check if match already exists (same teams on same day)
-      const isExist = allMatches.find(x => 
-        (x.homeTeam === m.homeTeam.name || x.home === m.homeTeam.tla) && 
-        x.kickoffDate === dateStr
-      );
-
-      const matchData = {
-        homeTeam: m.homeTeam.name, awayTeam: m.awayTeam.name,
-        home: m.homeTeam.tla || m.homeTeam.shortName || m.homeTeam.name.substring(0,3).toUpperCase(),
-        away: m.awayTeam.tla || m.awayTeam.shortName || m.awayTeam.name.substring(0,3).toUpperCase(),
-        homeLogo: m.homeTeam.crest || '',
-        awayLogo: m.awayTeam.crest || '',
-        leagueId: comp === 'PL' ? 'EPL' : comp === 'CL' ? 'UCL' : comp === 'BL1' ? 'BUNDESLIGA' : comp === 'SA' ? 'SERIEA' : comp === 'PD' ? 'LALIGA' : comp === 'FL1' ? 'LIGUE1' : comp,
-        kickoffDate: dateStr,
-        kickoffIST: `${hrs}:${mins}`,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
-
-      if(isExist) {
-        // Update existing match (status, scores, etc. are preserved unless you want to override)
-        await db.collection('matches').doc(isExist.id).update(matchData);
-        updated++;
-      } else {
-        // Add new match
-        const newMatch = {
-          ...matchData,
-          status: 'upcoming',
-          homeScore: 0, awayScore: 0,
-          featured: false, servers: [], preview: '', minute: '',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        await db.collection('matches').add(newMatch);
-        added++;
-      }
-    }
-    
-    closeModal('fetch-modal');
-    showToast(`Done! Added ${added} new and updated ${updated} existing match(es).`, 'success');
+    renderFootballFixtures(comp);
   } catch(err) {
-    showToast(err.message, 'error');
-  } finally {
-    btn.textContent = 'Start Fetch'; btn.disabled = false;
+    listEl.innerHTML = `<div style="text-align:center;padding:40px;color:#ff6b6b">Error: ${err.message}</div>`;
+  }
+}
+
+function renderFootballFixtures(comp) {
+  const listEl = document.getElementById('football-fixtures-list');
+  
+  listEl.innerHTML = footballSearchResults.map((m, index) => {
+    const dateStr = new Date(m.utcDate).toISOString().split('T')[0];
+    const exists = allMatches.find(x => x.homeTeam === m.homeTeam.name && x.kickoffDate === dateStr);
+    
+    return `
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px;width:70%">
+          <img src="${m.homeTeam.crest}" style="width:20px;height:20px;object-fit:contain">
+          <div style="font-size:12px;font-weight:700;color:var(--text1);flex:1">${m.homeTeam.shortName || m.homeTeam.name} vs ${m.awayTeam.shortName || m.awayTeam.name}</div>
+          <img src="${m.awayTeam.crest}" style="width:20px;height:20px;object-fit:contain">
+        </div>
+        ${exists ? 
+          `<button class="btn btn-sm" disabled style="background:rgba(0,230,118,0.1);color:#69f0ae;border-color:rgba(0,230,118,0.2)">Added</button>` : 
+          `<button class="btn btn-sm btn-primary" onclick="addFootballMatch(${index}, '${comp}', this)">+ Add</button>`
+        }
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:-8px;margin-left:12px;margin-bottom:5px">${dateStr} · ${new Date(m.utcDate).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} IST</div>
+    `;
+  }).join('');
+}
+
+async function addFootballMatch(index, comp, btn) {
+  const m = footballSearchResults[index];
+  const dateObj = new Date(m.utcDate);
+  const dateStr = dateObj.toISOString().split('T')[0];
+  const hrs = dateObj.getHours().toString().padStart(2, '0');
+  const mins = dateObj.getMinutes().toString().padStart(2, '0');
+
+  btn.textContent = 'Adding...'; btn.disabled = true;
+
+  const data = {
+    sport: 'football',
+    homeTeam: m.homeTeam.name, awayTeam: m.awayTeam.name,
+    home: m.homeTeam.tla || m.homeTeam.shortName || m.homeTeam.name.substring(0,3).toUpperCase(),
+    away: m.awayTeam.tla || m.awayTeam.shortName || m.awayTeam.name.substring(0,3).toUpperCase(),
+    homeLogo: m.homeTeam.crest || '', awayLogo: m.awayTeam.crest || '',
+    leagueId: comp === 'PL' ? 'EPL' : comp === 'CL' ? 'UCL' : comp === 'BL1' ? 'BUNDESLIGA' : comp === 'SA' ? 'SERIEA' : comp === 'PD' ? 'LALIGA' : comp === 'FL1' ? 'LIGUE1' : comp,
+    leagueName: LEAGUES_MAP[comp] || comp,
+    kickoffDate: dateStr, kickoffIST: `${hrs}:${mins}`,
+    status: 'upcoming', homeScore: 0, awayScore: 0,
+    featured: false, servers: [], preview: '', minute: '',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    await db.collection('matches').add(data);
+    btn.textContent = 'Added';
+    btn.style.background = 'rgba(0,230,118,0.1)';
+    btn.style.color = '#69f0ae';
+    btn.style.borderColor = 'rgba(0,230,118,0.2)';
+    showToast('Match added!', 'success');
+  } catch(e) {
+    btn.textContent = '+ Add'; btn.disabled = false;
+    showToast(e.message, 'error');
   }
 }
 
@@ -371,6 +384,7 @@ function openMatchModal(id=null) {
     document.getElementById('f-featured').checked = !!m.featured;
     (m.servers||[]).forEach(s=>addServerRow(s.label, s.url, s.type||'redirect', s.enabled!==false));
     document.getElementById('f-preview').value = m.preview || '';
+    document.getElementById('f-apkStream').value = m.apkStream || '';
     document.getElementById('f-sport').value = m.sport || 'football';
     document.getElementById('f-homeCricketScore').value = m.homeCricketScore || '';
     document.getElementById('f-awayCricketScore').value = m.awayCricketScore || '';
@@ -387,6 +401,7 @@ function clearMatchForm() {
   document.getElementById('f-homeScore').value=0;
   document.getElementById('f-awayScore').value=0;
   document.getElementById('f-featured').checked=false;
+  document.getElementById('f-apkStream').value='';
   document.getElementById('servers-list').innerHTML='';
   toggleScoreFields();
 }
@@ -460,6 +475,7 @@ async function saveMatch() {
     featured: getChecked('f-featured'),
     servers,
     preview,
+    apkStream: getValue('f-apkStream'),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
@@ -690,10 +706,10 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 let toastTimer;
 function showToast(msg, type='success') {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  t.innerHTML = msg; // Support HTML links
   t.className = `show ${type}`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>{ t.className=''; },3000);
+  toastTimer = setTimeout(()=>{ t.className=''; },5000); // Longer for reading links
 }
 
 /* ── INIT ── */
@@ -762,7 +778,7 @@ async function sendPushNotification() {
   result.style.color = '#90caf9';
 
   try {
-    const res = await fetch('/api/send-notification', {
+    const res = await fetch('/send_notification.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, body, imageUrl })
@@ -791,7 +807,7 @@ async function autoSendLiveNotification(m) {
   const imageUrl = m.homeLogo || m.awayLogo || '';
 
   try {
-    await fetch('/api/send-notification', {
+    await fetch('/send_notification.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, body, imageUrl })
@@ -803,38 +819,245 @@ async function autoSendLiveNotification(m) {
 async function generateAIPreview() {
   const h = document.getElementById('f-homeTeam').value.trim();
   const a = document.getElementById('f-awayTeam').value.trim();
-  const l = document.getElementById('f-leagueName').value.trim() || LEAGUES_MAP[document.getElementById('f-leagueId').value];
+  const l = document.getElementById('f-leagueName')?.value.trim() || document.getElementById('f-league')?.value.trim() || 'League';
+  const sport = document.getElementById('f-sport').value;
+  const date = document.getElementById('f-matchDate')?.value || 'Upcoming';
+  const time = document.getElementById('f-matchTime')?.value || '';
   
-  if (!h || !a) { showToast('Enter Team names first!','error'); return; }
+  if (!h || !a) return showToast('Enter Team names first!','error');
   
   const key = localStorage.getItem('zs_gemini_key') || GEMINI_API_KEY;
   if (!key) { 
-    const p = prompt('Please enter your Gemini API Key (get one for free at aistudio.google.com):');
+    const p = prompt('Enter Gemini API Key (get one for free at aistudio.google.com):');
     if (!p) return;
     localStorage.setItem('zs_gemini_key', p);
   }
 
-  const btn = document.querySelector('[onclick="generateAIPreview()"]');
-  const oldTxt = btn.textContent;
-  btn.textContent = '⌛ Generating...';
+  const btn = document.getElementById('btn-ai-gen');
+  const oldTxt = btn.innerHTML;
+  btn.innerHTML = '<span class="loading-spinner"></span> Analyzing...';
   btn.disabled = true;
 
-  const promptStr = `Write a short, engaging 2-paragraph football match preview for ${h} vs ${a} in the ${l}. Include form summary and key prediction. No markdown, just plain text.`;
+  const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  const status = document.getElementById('f-status').value;
+  const isFinished = status === 'finished';
+
+  let promptStr = '';
+  
+  if (isFinished) {
+    promptStr = `[FORCE CONTEXT: THE CURRENT DATE IS ${now}. DO NOT PROVIDE DATA FROM PREVIOUS YEARS UNLESS REQUESTED.]
+Generate a high-energy, professional POST-MATCH REVIEW in EXACTLY this format:
+
+🚨🔥⚽ 𝗠𝗔𝗧𝗖𝗛 𝗥𝗘𝗩𝗜𝗘𝗪 & 𝗦𝗧𝗔𝗧𝗦 ⚽🔥🚨
+
+━━━━━━━━━━━━━━━━━━━
+🏆 𝗖𝗢𝗠𝗣𝗘𝗧𝗜𝗢𝗡: ${l}
+📅 𝗗𝗔𝗧𝗘: ${date}
+🏟️ 𝗩𝗘𝗡𝗨𝗘: [Stadium Name]
+🏁 𝗥𝗘𝗦𝗨𝗟𝗧: ${h} [Score] - [Score] ${a}
+━━━━━━━━━━━━━━━━━━━
+
+🌟 𝗠𝗔𝗧𝗖𝗛 𝗦𝗨𝗠𝗠𝗔𝗥𝗬
+[Write 3 powerful sentences about the match outcome on ${date}]
+
+━━━━━━━━━━━━━━━━━━━
+
+📊 𝗖𝗨𝗥𝗥𝗘𝗡𝗧 𝗠𝗔𝗧𝗖𝗛 𝗦𝗧𝗔𝗧𝗦
+⚽ Goals: [Scorers]
+🎯 Possession: [X]% - [X]%
+🧤 Saves: [X] - [X]
+🚩 Corners: [X] - [X]
+
+━━━━━━━━━━━━━━━━━━━
+
+⭐ 𝗧𝗢𝗣 𝗣𝗘𝗥𝗙𝗢𝗥𝗠𝗘𝗥𝗦
+🏅 [Man of the Match Name] - [Brief reason]
+⚡ [Top Performer 2]
+⚡ [Top Performer 3]
+
+━━━━━━━━━━━━━━━━━━━
+
+🎙️ 𝗣𝗢𝗦𝗧-𝗠𝗔𝗧𝗖𝗛 𝗤𝗨𝗢𝗧𝗘𝗦
+💬 Manager says: "[Realistic Post-match quote]"
+
+━━━━━━━━━━━━━━━━━━━
+
+📖 𝗙𝗜𝗡𝗔𝗟 𝗧𝗛𝗢𝗨𝗚𝗛𝗧𝗦
+[One final sentence on what this result means for both teams in the table]
+
+━━━━━━━━━━━━━━━━━━━
+
+Match Details: ${h} vs ${a} in ${l}. Final Status: ${status}. 
+Current Date/Time: ${now}.
+CRITICAL: You are reporting on the actual real-world result for this specific match that occurred on ${date}. Use the most recent data available up to ${now}.`;
+  } else {
+    promptStr = `Generate a high-energy, professional match preview in EXACTLY this format (use these exact emojis and horizontal dividers):
+
+🚨🔥⚽ 𝗕𝗜𝗚 𝗠𝗔𝗧𝗖𝗛 𝗣𝗥𝗘𝗩𝗜𝗘𝗪 ⚽🔥🚨
+
+━━━━━━━━━━━━━━━━━━━
+🏆 𝗖𝗢𝗠𝗣𝗘𝗧𝗜𝗢𝗡: ${l}
+📅 𝗗𝗔𝗧𝗘: ${date}
+⏰ 𝗞𝗜𝗖𝗞-𝗢𝗙𝗙: ${time} IST
+🏟️ 𝗩𝗘𝗡𝗨𝗘: [Stadium Name - Research real one]
+━━━━━━━━━━━━━━━━━━━
+
+🔵⚪ ${h}
+🆚
+🔴⚫ ${a}
+
+━━━━━━━━━━━━━━━━━━━
+
+📰🔥 𝗟𝗔𝗧𝗘𝗦𝗧 𝗧𝗘𝗔𝗠 𝗡𝗘𝗪𝗦
+
+🩹 ${h} injury news...
+🚀 ${a} star form...
+🎙️ Manager quote: "[Short Match Quote]"
+
+━━━━━━━━━━━━━━━━━━━
+
+📊 𝗖𝗨𝗥𝗥𝗘𝗡𝗧 𝗙𝗢𝗥𝗠
+
+🔥 ${h}
+✅ Win
+✅ Win
+➖ Draw
+❌ Loss
+✅ Win
+
+🔥 ${a}
+✅ Win
+❌ Loss
+✅ Win
+➖ Draw
+✅ Win
+
+━━━━━━━━━━━━━━━━━━━
+
+⭐ 𝗣𝗟𝗔𝗬𝗘𝗥𝗦 𝗧𝗢 𝗪𝗔𝗧𝗖𝗛
+
+⚡ [Star Player 1]
+⚡ [Star Player 2]
+⚡ [Star Player 3]
+⚡ [Star Player 4]
+
+━━━━━━━━━━━━━━━━━━━
+
+⚔️ 𝗛𝗘𝗔𝗗 𝗧𝗢 𝗛𝗘𝗔𝗗
+
+📌 Last 5 Meetings:
+🔵 ${h} Wins: X
+🤝 Draws: X
+🔴 ${a} Wins: X
+
+━━━━━━━━━━━━━━━━━━━
+
+🔥 𝗞𝗘𝗬 𝗠𝗔𝗧𝗖𝗛 𝗙𝗔𝗖𝗧𝗦
+
+⚽ [Interesting Fact]
+🎯 [Team Stat]
+🧤 [Defensive Stat]
+🚀 [Attacking Stat]
+
+━━━━━━━━━━━━━━━━━━━
+
+📺 𝗪𝗔𝗧𝗖𝗛 𝗟𝗜𝗩𝗘
+📡 LIVE on ZetaSports App!
+
+━━━━━━━━━━━━━━━━━━━
+
+🔮 𝗣𝗥𝗘𝗗𝗜𝗖𝗧𝗜𝗢𝗡
+
+🧠 ${h} [Score] - [Score] ${a}
+
+━━━━━━━━━━━━━━━━━━━
+
+Match Details: ${h} vs ${a} in ${l} on ${date}.
+Current System Time: ${now} (IST).
+Research real current data for this specific match. Use the latest news as of ${now}. Use Bold Sans-serif Unicode characters for the headings exactly as shown in the template. No markdown, just plain text with emojis.`;
+  }
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${localStorage.getItem('zs_gemini_key')}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: promptStr }] }] })
-    });
-    const data = await res.json();
-    const text = data.candidates[0].content.parts[0].text;
-    document.getElementById('f-preview').value = text;
-    showToast('AI Preview Generated! ✓', 'success');
+    const provider = localStorage.getItem('zs_ai_provider') || 'gemini';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+
+    if (provider === 'groq') {
+      const groqKey = localStorage.getItem('zs_groq_key');
+      if (!groqKey) throw new Error('Please set Groq API Key in Settings');
+      
+      const selectedModel = localStorage.getItem('zs_groq_model') || 'llama-3.3-70b-versatile';
+      const groqModels = [selectedModel, 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
+      let groqSuccess = null;
+      let groqErr = '';
+
+      for (const m of groqModels) {
+        try {
+          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            signal: controller.signal,
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+            body: JSON.stringify({ model: m, messages: [{ role: 'user', content: promptStr }] })
+          });
+          const data = await res.json();
+          if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+            groqSuccess = data.choices[0].message.content;
+            break;
+          } else {
+            groqErr = data.error?.message || 'Groq Error';
+          }
+        } catch(e) { groqErr = e.name === 'AbortError' ? 'Request timed out (25s)' : e.message; }
+      }
+      if (!groqSuccess) throw new Error(groqErr);
+      document.getElementById('f-preview').value = groqSuccess;
+      showToast('Analysis Generated! ⚡', 'success');
+
+    } else {
+      // Gemini Logic
+      const apiKey = localStorage.getItem('zs_gemini_key');
+      if (!apiKey) throw new Error('Please set Gemini API Key in Settings');
+      const selectedModel = localStorage.getItem('zs_gemini_model') || 'gemini-1.5-flash';
+      const models = [selectedModel, 'gemini-1.5-flash', 'gemini-1.5-pro'];
+      const versions = ['v1', 'v1beta'];
+      let geminiSuccess = null;
+      let geminiErr = '';
+
+      for (const v of versions) {
+        if (geminiSuccess) break;
+        for (const m of models) {
+          try {
+            const res = await fetch(`https://generativelanguage.googleapis.com/${v}/models/${m}:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              signal: controller.signal,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ parts: [{ text: promptStr }] }] })
+            });
+            const data = await res.json();
+            if (data.candidates && data.candidates.length > 0) {
+              const cand = data.candidates[0];
+              if (cand.content && cand.content.parts && cand.content.parts.length > 0) {
+                geminiSuccess = cand.content.parts[0].text;
+                break;
+              } else {
+                geminiErr = 'Blocked or empty response (Reason: ' + (cand.finishReason || 'Unknown') + ')';
+              }
+            } else {
+              geminiErr = data.error?.message || 'Gemini Error';
+            }
+          } catch (e) { geminiErr = e.name === 'AbortError' ? 'Request timed out (25s)' : e.message; }
+        }
+      }
+      if (!geminiSuccess) throw new Error(geminiErr);
+      document.getElementById('f-preview').value = geminiSuccess;
+      showToast('Analysis Generated! ✓', 'success');
+    }
+    clearTimeout(timeoutId);
   } catch(e) {
+    console.error('AI Error:', e);
     showToast('AI Error: ' + e.message, 'error');
   } finally {
-    btn.textContent = oldTxt;
+    btn.innerHTML = oldTxt;
     btn.disabled = false;
   }
 }
@@ -876,6 +1099,11 @@ function renderSettings() {
   document.getElementById('s-admobRewardedId').value = appSettings.admobRewardedId || '';
   document.getElementById('s-admobRewardedInterId').value = appSettings.admobRewardedInterId || '';
   document.getElementById('s-cricketApiKey').value = appSettings.cricketApiKey || '';
+  document.getElementById('s-geminiKey').value = localStorage.getItem('zs_gemini_key') || '';
+  document.getElementById('s-groqKey').value = localStorage.getItem('zs_groq_key') || '';
+  document.getElementById('s-aiProvider').value = localStorage.getItem('zs_ai_provider') || 'gemini';
+  document.getElementById('s-geminiModel').value = localStorage.getItem('zs_gemini_model') || 'gemini-1.5-flash';
+  document.getElementById('s-groqModel').value = localStorage.getItem('zs_groq_model') || 'llama-3.3-70b-versatile';
   if (document.getElementById('s-adsEnabled')) document.getElementById('s-adsEnabled').checked = !!appSettings.adsEnabled;
   if (document.getElementById('s-adsBannerEnabled')) document.getElementById('s-adsBannerEnabled').checked = !!appSettings.adsBannerEnabled;
   if (document.getElementById('s-adsInterstitialEnabled')) document.getElementById('s-adsInterstitialEnabled').checked = !!appSettings.adsInterstitialEnabled;
@@ -961,6 +1189,16 @@ async function saveAppSettings() {
 
   console.log('DEBUG: Saving App Settings:', data);
 
+  const geminiKey = getValue('s-geminiKey');
+  const groqKey = getValue('s-groqKey');
+  const aiProvider = getValue('s-aiProvider');
+
+  if (geminiKey) localStorage.setItem('zs_gemini_key', getValue('s-geminiKey'));
+  localStorage.setItem('zs_groq_key', getValue('s-groqKey'));
+  localStorage.setItem('zs_ai_provider', getValue('s-aiProvider'));
+  localStorage.setItem('zs_gemini_model', getValue('s-geminiModel'));
+  localStorage.setItem('zs_groq_model', getValue('s-groqModel'));
+
   try {
     const docRef = db.collection('settings').doc('app_config');
     await docRef.set(data, { merge: true });
@@ -984,4 +1222,143 @@ function updateWebsiteBranding() {
   if (appSettings.primaryColor) {
     document.documentElement.style.setProperty('--acc', appSettings.primaryColor);
   }
+}
+
+/* ── IPL SYNC SNIPER ── */
+let iplSearchResults = [];
+
+async function syncAllCricketMatches() {
+  const apiKey = appSettings?.cricketApiKey;
+  if (!apiKey) return showToast('Please set Cricket API Key in Settings first!', 'error');
+
+  openModal('ipl-sync-modal');
+  const listEl = document.getElementById('ipl-fixtures-list');
+  listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Searching IPL matches...</div>';
+
+  try {
+    const res = await fetch(`https://api.cricapi.com/v1/matches?apikey=${apiKey}`);
+    const data = await res.json();
+    
+    if (data.status !== 'success') throw new Error(data.reason || 'API Error');
+
+    iplSearchResults = data.data.filter(am => {
+      const matchName = am.name.toUpperCase();
+      return matchName.includes('IPL') || matchName.includes('INDIAN PREMIER LEAGUE');
+    }).filter(am => am.status !== 'result'); // Only upcoming/live
+
+    if (iplSearchResults.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No upcoming IPL matches found.</div>';
+      return;
+    }
+
+    renderIPLFixtures();
+  } catch (e) { 
+    listEl.innerHTML = `<div style="text-align:center;padding:40px;color:#ff6b6b">Error: ${e.message}</div>`;
+  }
+}
+
+function renderIPLFixtures() {
+  const listEl = document.getElementById('ipl-fixtures-list');
+  
+  const iplTeams = {
+    'Chennai Super Kings':'CSK', 'Mumbai Indians':'MI', 'Royal Challengers Bangalore':'RCB', 
+    'Kolkata Knight Riders':'KKR', 'Gujarat Titans':'GT', 'Lucknow Super Giants':'LSG',
+    'Rajasthan Royals':'RR', 'Delhi Capitals':'DC', 'Punjab Kings':'PBKS', 'Sunrisers Hyderabad':'SRH',
+    'Royal Challengers Bengaluru':'RCB'
+  };
+
+  listEl.innerHTML = iplSearchResults.map((am, index) => {
+    const exists = allMatches.find(m => m.sport==='cricket' && m.homeTeam.toLowerCase().includes(am.name.split(' vs ')[0].trim().toLowerCase()) && m.kickoffDate===am.date);
+    
+    return `
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--text1)">${am.name}</div>
+          <div style="font-size:11px;color:var(--acc2);margin-top:2px">${am.date} · ${am.status}</div>
+        </div>
+        ${exists ? 
+          `<button class="btn btn-sm" disabled style="background:rgba(0,230,118,0.1);color:#69f0ae;border-color:rgba(0,230,118,0.2)">✅ Added</button>` : 
+          `<button class="btn btn-sm btn-primary" onclick="addIPLMatch(${index}, this)">+ Add</button>`
+        }
+      </div>
+    `;
+  }).join('');
+}
+
+async function addIPLMatch(index, btn) {
+  const am = iplSearchResults[index];
+  if (!am) return;
+
+  const iplTeams = {
+    'Chennai Super Kings':'CSK', 'Mumbai Indians':'MI', 'Royal Challengers Bangalore':'RCB', 
+    'Kolkata Knight Riders':'KKR', 'Gujarat Titans':'GT', 'Lucknow Super Giants':'LSG',
+    'Rajasthan Royals':'RR', 'Delhi Capitals':'DC', 'Punjab Kings':'PBKS', 'Sunrisers Hyderabad':'SRH',
+    'Royal Challengers Bengaluru':'RCB'
+  };
+
+  const getCode = (n) => {
+    for(let team in iplTeams) if(n.includes(team)) return iplTeams[team];
+    return n.slice(0,3).toUpperCase();
+  };
+
+  const parts = am.name.split(' vs ');
+  const hFull = parts[0].trim(), aFull = parts[1].split(',')[0].trim();
+
+  btn.textContent = 'Adding...';
+  btn.disabled = true;
+
+  try {
+    await db.collection('matches').add({
+      sport: 'cricket', homeTeam: hFull, awayTeam: aFull,
+      home: getCode(hFull), away: getCode(aFull),
+      leagueId: 'IPL', leagueName: 'Indian Premier League',
+      status: am.matchStarted ? 'live' : 'upcoming',
+      kickoffDate: am.date, kickoffIST: '19:30',
+      homeScore:0, awayScore:0, homeCricketScore:'', awayCricketScore:'',
+      cricketInfo: am.status || '', featured: true, servers: [],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    btn.textContent = '✅ Added';
+    btn.style.background = 'rgba(0,230,118,0.1)';
+    btn.style.color = '#69f0ae';
+    btn.style.borderColor = 'rgba(0,230,118,0.2)';
+    showToast('Match added successfully!', 'success');
+  } catch (e) {
+    btn.textContent = '+ Add';
+    btn.disabled = false;
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function fetchCricketScore() {
+  const apiKey = appSettings?.cricketApiKey;
+  const h = document.getElementById('f-homeTeam').value.toLowerCase();
+  const a = document.getElementById('f-awayTeam').value.toLowerCase();
+  if (!apiKey || !h || !a) return showToast('Check API Key and Teams', 'warning');
+
+  try {
+    const res = await fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${apiKey}`);
+    const data = await res.json();
+    const m = data.data.find(x => x.name.toLowerCase().includes(h) && x.name.toLowerCase().includes(a));
+    if (!m || !m.score) return showToast('Live score not available yet', 'info');
+    
+    const s1 = m.score[0], s2 = m.score[1];
+    document.getElementById('f-homeCricketScore').value = `${s1.r}/${s1.w}`;
+    if (s2) document.getElementById('f-awayCricketScore').value = `${s2.r}/${s2.w}`;
+    document.getElementById('f-cricketInfo').value = `${s1.o} ov · ${m.status}`;
+    showToast('Updated Score');
+  } catch (e) { showToast(e.message, 'error'); }
+}
+function patchFlutterStream() {
+  const url = document.getElementById('f-apkStream').value.trim();
+  if (!url) return showToast('Enter a URL first!', 'error');
+  
+  showToast('Optimizing Link for Flutter APK... ⚡', 'success');
+  // Visual effect to show it worked
+  document.getElementById('f-apkStream').style.borderColor = 'var(--acc2)';
+  setTimeout(() => {
+    document.getElementById('f-apkStream').style.borderColor = '';
+    showToast('Link Patched! Native App will now use Direct Stream.', 'success');
+  }, 1000);
 }

@@ -10,7 +10,7 @@ const WIDGET_LEAGUE_MAP = {
 
 function initApp() {
   try {
-    firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.firestore();
     
     setupNavigation();

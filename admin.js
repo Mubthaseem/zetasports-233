@@ -778,7 +778,7 @@ async function sendPushNotification() {
   result.style.color = '#90caf9';
 
   try {
-    const res = await fetch('/send_notification.php', {
+    const res = await fetch('/api/send-notification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, body, imageUrl })
@@ -807,7 +807,7 @@ async function autoSendLiveNotification(m) {
   const imageUrl = m.homeLogo || m.awayLogo || '';
 
   try {
-    await fetch('/send_notification.php', {
+    await fetch('/api/send-notification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, body, imageUrl })
@@ -1001,12 +1001,10 @@ Research real current data for this specific match. Use the latest news as of ${
             body: JSON.stringify({ model: m, messages: [{ role: 'user', content: promptStr }] })
           });
           const data = await res.json();
-          if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+          if (data.choices && data.choices[0]) {
             groqSuccess = data.choices[0].message.content;
             break;
-          } else {
-            groqErr = data.error?.message || 'Groq Error';
-          }
+          } else groqErr = data.error?.message || 'Groq Error';
         } catch(e) { groqErr = e.name === 'AbortError' ? 'Request timed out (25s)' : e.message; }
       }
       if (!groqSuccess) throw new Error(groqErr);
@@ -1034,17 +1032,10 @@ Research real current data for this specific match. Use the latest news as of ${
               body: JSON.stringify({ contents: [{ parts: [{ text: promptStr }] }] })
             });
             const data = await res.json();
-            if (data.candidates && data.candidates.length > 0) {
-              const cand = data.candidates[0];
-              if (cand.content && cand.content.parts && cand.content.parts.length > 0) {
-                geminiSuccess = cand.content.parts[0].text;
-                break;
-              } else {
-                geminiErr = 'Blocked or empty response (Reason: ' + (cand.finishReason || 'Unknown') + ')';
-              }
-            } else {
-              geminiErr = data.error?.message || 'Gemini Error';
-            }
+            if (data.candidates && data.candidates[0]) {
+              geminiSuccess = data.candidates[0].content.parts[0].text;
+              break;
+            } else geminiErr = data.error?.message || 'Gemini Error';
           } catch (e) { geminiErr = e.name === 'AbortError' ? 'Request timed out (25s)' : e.message; }
         }
       }

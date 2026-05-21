@@ -16,6 +16,11 @@ function initApp() {
     setupNavigation();
     listenData();
     recordVisit();
+
+    setTimeout(() => {
+      const splash = document.getElementById('splash-screen');
+      if (splash) splash.classList.add('hide');
+    }, 1200);
   } catch(e) { console.error('Firebase init error:', e); }
 }
 

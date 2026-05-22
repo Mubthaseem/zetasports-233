@@ -402,13 +402,21 @@ function renderStandings() {
       const embed = dbL.embedCode || '';
       return `
       <div class="standings-panel ${i===0?'active':''}" id="std-panel-${l.id}">
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:15px;overflow:hidden;margin:12px">
-          ${embed || `<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px">No table configured. Add embed code in Admin Panel.</div>`}
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:15px;overflow:hidden;margin:12px" id="embed-container-${l.id}">
+          ${embed ? '' : `<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px">No table configured. Add embed code in Admin Panel.</div>`}
         </div>
       </div>
     `}).join('')}
     <div style="height:20px"></div>
   `;
+
+  // Inject script tags correctly
+  leagues.forEach((l) => {
+    const dbL = allLeagues.find(al => al.id === l.id) || {};
+    if (dbL.embedCode) {
+      injectHTMLSafe(`embed-container-${l.id}`, dbL.embedCode);
+    }
+  });
 }
 
 function switchStandingsTab(id, btn) {
@@ -558,13 +566,17 @@ function renderMatchDetail(id) {
     ${!isCricket && appSettings.tablesEnabled !== false && (allLeagues.find(l => l.id === m.leagueId)?.embedCode) ? `
     <div class="detail-section">
       <div class="detail-section-title">📊 League Table</div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:15px;overflow:hidden">
-        ${allLeagues.find(l => l.id === m.leagueId).embedCode}
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:15px;overflow:hidden" id="match-embed-container">
       </div>
     </div>` : ''}
 
     <div style="height:30px"></div>
   `;
+
+  const embedCode = allLeagues.find(l => l.id === m.leagueId)?.embedCode;
+  if (!isCricket && appSettings.tablesEnabled !== false && embedCode) {
+    injectHTMLSafe('match-embed-container', embedCode);
+  }
 }
 
 /* ────────────────────────────────────────────────────
@@ -826,4 +838,13 @@ async function shareContent(title, path) {
       console.error('Failed to copy: ', err);
     }
   }
+}
+
+// Utility to inject HTML strings that contain <script> tags
+function injectHTMLSafe(containerId, htmlString) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = ''; // Clear container
+  const fragment = document.createRange().createContextualFragment(htmlString);
+  container.appendChild(fragment);
 }

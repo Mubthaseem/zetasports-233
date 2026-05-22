@@ -1,26 +1,34 @@
-/* ── ZETASPORTS Public App — app.js ── */
+/* ── ZETASPORTS app.js — Hash Router + All Screens ── */
 
+/* ────────────────────────────────────────────────────
+   GLOBALS
+──────────────────────────────────────────────────── */
 let db = null;
 let allMatches = [], allNews = [], allLeagues = [];
-let currentScreen = 'home';
 
 const WIDGET_LEAGUE_MAP = {
-  'EPL': 39, 'PL': 39, 'LALIGA': 140, 'BUNDESLIGA': 78, 'SERIEA': 135, 'UCL': 2, 'LIGUE1': 61, 'ISL': 323
+  'EPL':39,'PL':39,'LALIGA':140,'BUNDESLIGA':78,
+  'SERIEA':135,'UCL':2,'LIGUE1':61,'ISL':323,'IPL':1
 };
 
+const LEAGUE_EMOJI = {
+  EPL:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', PL:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', LALIGA:'🇪🇸', BUNDESLIGA:'🇩🇪',
+  SERIEA:'🇮🇹', UCL:'⭐', LIGUE1:'🇫🇷', ISL:'🇮🇳', IPL:'🏏'
+};
+
+/* ────────────────────────────────────────────────────
+   INIT
+──────────────────────────────────────────────────── */
 function initApp() {
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.firestore();
-    
-    setupNavigation();
     listenData();
     recordVisit();
-
     setTimeout(() => {
       const splash = document.getElementById('splash-screen');
       if (splash) splash.classList.add('hide');
-    }, 1200);
+    }, 1400);
   } catch(e) { console.error('Firebase init error:', e); }
 }
 
@@ -28,197 +36,729 @@ async function recordVisit() {
   const today = new Date().toISOString().split('T')[0];
   const ref = db.collection('analytics').doc(today);
   try {
-    await db.runTransaction(async (t) => {
+    await db.runTransaction(async t => {
       const doc = await t.get(ref);
       if (!doc.exists) t.set(ref, { visits: 1 });
       else t.update(ref, { visits: (doc.data().visits || 0) + 1 });
     });
-  } catch(e) { console.error('Visit error:', e); }
+  } catch(e) {}
 }
 
-function setupNavigation() {
-  document.querySelectorAll('.nav-item').forEach(btn => {
-    btn.onclick = () => {
-      const screen = btn.getAttribute('data-screen');
-      goScreen(screen);
-    };
+/* ────────────────────────────────────────────────────
+   FIREBASE LISTENERS
+──────────────────────────────────────────────────── */
+function listenData() {
+  db.collection('matches').orderBy('kickoffDate', 'desc').onSnapshot(snap => {
+    allMatches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const liveCount = allMatches.filter(m => m.status === 'live' || m.status === 'ht').length;
+    const lcv = document.getElementById('live-count-val');
+    if (lcv) lcv.textContent = liveCount;
+    // Re-render current screen if it needs live data
+    reRenderCurrentScreen();
   });
-  
-  const backBtn = document.getElementById('back-btn');
-  if (backBtn) backBtn.onclick = () => goScreen('home');
+
+  db.collection('news').orderBy('publishedAt', 'desc').limit(20).onSnapshot(snap => {
+    allNews = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    reRenderCurrentScreen();
+  }, () => {
+    db.collection('news').onSnapshot(snap => {
+      allNews = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      reRenderCurrentScreen();
+    });
+  });
+
+  db.collection('leagues').onSnapshot(snap => {
+    allLeagues = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    reRenderCurrentScreen();
+  });
 }
 
-function goScreen(screen) {
-  currentScreen = screen;
-  document.querySelectorAll('.screen').forEach(s => {
-    s.classList.toggle('active', s.id === 'screen-' + screen);
-  });
-  document.querySelectorAll('.nav-item').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-screen') === screen);
-  });
-  
+function reRenderCurrentScreen() {
+  const hash = location.hash || '#/';
+  if (hash === '#/' || hash === '') renderHome();
+  else if (hash === '#/matches') renderMatches();
+  else if (hash === '#/news') renderNews();
+  else if (hash === '#/standings') renderStandings();
+  else if (hash === '#/leagues') renderLeagues();
+}
+
+/* ────────────────────────────────────────────────────
+   HASH ROUTER
+──────────────────────────────────────────────────── */
+function route() {
+  const hash = location.hash || '#/';
+
+  // Hide all screens
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+
+  // Reset nav active
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  // Reset header
   const backBtn = document.getElementById('back-btn');
   const logo = document.getElementById('header-logo');
   const title = document.getElementById('header-title');
 
-  if (screen === 'detail') {
-    backBtn?.classList.remove('hidden');
-    logo?.classList.add('hidden');
-    title?.classList.remove('hidden');
-  } else {
-    backBtn?.classList.add('hidden');
-    logo?.classList.remove('hidden');
-    title?.classList.add('hidden');
-  }
+  if (hash.startsWith('#/match/')) {
+    const id = hash.replace('#/match/', '');
+    showScreen('match');
+    backBtn.classList.remove('hidden');
+    logo.classList.add('hidden');
+    title.classList.remove('hidden');
+    title.textContent = 'Match Details';
+    renderMatchDetail(id);
 
-  if (screen === 'home') renderHome();
+  } else if (hash.startsWith('#/article/')) {
+    const id = hash.replace('#/article/', '');
+    showScreen('article');
+    backBtn.classList.remove('hidden');
+    logo.classList.add('hidden');
+    title.classList.remove('hidden');
+    title.textContent = 'Article';
+    renderArticle(id);
+
+  } else if (hash === '#/matches') {
+    showScreen('matches');
+    setNavActive('nav-matches');
+    setHeader(false);
+    renderMatches();
+
+  } else if (hash === '#/news') {
+    showScreen('news');
+    setNavActive('nav-news');
+    setHeader(false);
+    renderNews();
+
+  } else if (hash === '#/standings') {
+    showScreen('standings');
+    setNavActive('nav-standings');
+    setHeader(false);
+    renderStandings();
+
+  } else if (hash === '#/leagues') {
+    showScreen('leagues');
+    setNavActive('nav-leagues');
+    setHeader(false);
+    renderLeagues();
+
+  } else {
+    showScreen('home');
+    setNavActive('nav-home');
+    setHeader(false);
+    renderHome();
+  }
 }
 
-function listenData() {
-  db.collection('matches').orderBy('kickoffDate', 'desc').onSnapshot(snap => {
-    allMatches = snap.docs.map(d => ({id:d.id, ...d.data()}));
-    const liveCount = allMatches.filter(m => m.status==='live'||m.status==='ht').length;
-    const lcv = document.getElementById('live-count-val');
-    if (lcv) lcv.textContent = liveCount;
-    if (currentScreen === 'home') renderHome();
-  });
+function showScreen(name) {
+  const el = document.getElementById('screen-' + name);
+  if (el) el.classList.add('active');
+}
 
-  db.collection('news').orderBy('publishedAt', 'desc').limit(10).onSnapshot(snap => {
-    allNews = snap.docs.map(d => ({id:d.id, ...d.data()}));
-    if (currentScreen === 'home') renderHome();
-  });
+function setNavActive(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+function setHeader(showBack, titleText = '') {
+  const backBtn = document.getElementById('back-btn');
+  const logo = document.getElementById('header-logo');
+  const title = document.getElementById('header-title');
+  if (showBack) {
+    backBtn.classList.remove('hidden');
+    logo.classList.add('hidden');
+    title.classList.remove('hidden');
+    title.textContent = titleText;
+  } else {
+    backBtn.classList.add('hidden');
+    logo.classList.remove('hidden');
+    title.classList.add('hidden');
+  }
+}
+
+/* ────────────────────────────────────────────────────
+   HOME SCREEN
+──────────────────────────────────────────────────── */
+let homeFilterDate = 'today'; // 'yesterday' | 'today' | 'tomorrow'
+
+function getDateStr(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().split('T')[0];
 }
 
 function renderHome() {
-  const homeEl = document.getElementById('screen-home');
-  if (!homeEl) return;
-  const live = allMatches.filter(m => m.status === 'live' || m.status === 'ht');
-  const upcoming = allMatches.filter(m => m.status === 'upcoming');
+  const el = document.getElementById('screen-home');
+  if (!el) return;
 
-  homeEl.innerHTML = `
-    <section class="home-section" style="padding:15px">
-      <div class="section-header" style="margin-bottom:15px">
-        <h2 style="color:var(--text1);font-family:'Rajdhani'">🔴 Live Matches</h2>
-      </div>
-      <div class="matches-grid" style="display:grid;gap:12px">
-        ${live.length ? live.map(m => matchCard(m)).join('') : '<div class="empty" style="color:var(--text3);padding:20px;text-align:center">No live matches currently.</div>'}
-      </div>
-    </section>
+  // Trending = featured matches or live matches
+  const trending = allMatches
+    .filter(m => m.featured || m.status === 'live' || m.status === 'ht')
+    .sort((a, b) => {
+      const o = { live: 0, ht: 1, upcoming: 2, finished: 3 };
+      return (o[a.status] || 9) - (o[b.status] || 9);
+    });
 
-    <section class="home-section" style="padding:15px">
-      <div class="section-header" style="margin-bottom:15px">
-        <h2 style="color:var(--text1);font-family:'Rajdhani'">⏰ Upcoming Fixtures</h2>
-      </div>
-      <div class="matches-grid" style="display:grid;gap:12px">
-        ${upcoming.slice(0,8).map(m => matchCard(m)).join('')}
-      </div>
-    </section>
+  // Date filtered matches
+  const dateMap = { yesterday: getDateStr(-1), today: getDateStr(0), tomorrow: getDateStr(1) };
+  const targetDate = dateMap[homeFilterDate];
+  const filtered = allMatches.filter(m => m.kickoffDate === targetDate)
+    .sort((a, b) => {
+      const o = { live: 0, ht: 1, upcoming: 2, finished: 3 };
+      return (o[a.status] || 9) - (o[b.status] || 9);
+    });
 
-    <section class="home-section" style="padding:15px">
-      <div class="section-header" style="margin-bottom:15px">
-        <h2 style="color:var(--text1);font-family:'Rajdhani'">📰 Latest News</h2>
-      </div>
-      <div class="news-grid" style="display:grid;gap:12px">
-        ${allNews.map(n => newsCard(n)).join('')}
-      </div>
-    </section>
+  el.innerHTML = `
+    <!-- Trending Matches -->
+    ${trending.length ? `
+    <div class="section-head">
+      <div class="section-title">⚡ Trending Matches</div>
+    </div>
+    <div class="trending-scroll">
+      ${trending.slice(0, 6).map(m => trendingCard(m)).join('')}
+    </div>` : ''}
+
+    <!-- Date Filter -->
+    <div class="date-filter">
+      <button class="date-chip ${homeFilterDate === 'yesterday' ? 'active' : ''}" onclick="setHomeFilter('yesterday')">Yesterday</button>
+      <button class="date-chip ${homeFilterDate === 'today' ? 'active' : ''}" onclick="setHomeFilter('today')">Today</button>
+      <button class="date-chip ${homeFilterDate === 'tomorrow' ? 'active' : ''}" onclick="setHomeFilter('tomorrow')">Tomorrow</button>
+    </div>
+
+    <!-- Date Filtered Matches -->
+    <div id="date-matches-zone">
+      ${filtered.length
+        ? `<div class="match-list-body">${filtered.map(m => matchCard(m)).join('')}</div>`
+        : `<div class="no-matches-state">
+            <div class="nms-icon">🏟️</div>
+            <div class="nms-title">No Matches</div>
+            <div class="nms-sub">No matches scheduled for this date.</div>
+          </div>`}
+    </div>
+
+    <!-- Latest News -->
+    <div class="section-head" style="margin-top:16px">
+      <div class="section-title">📰 Latest News</div>
+      <a href="#/news" class="see-all-btn">See all</a>
+    </div>
+    <div class="news-row">
+      ${allNews.length
+        ? allNews.slice(0, 10).map(n => newsCardSm(n)).join('')
+        : '<div class="empty-state">No news yet</div>'}
+    </div>
+    <div style="height:20px"></div>
   `;
 }
 
-function matchCard(m) {
-  const isCricket = m.sport === 'cricket';
+function setHomeFilter(filter) {
+  homeFilterDate = filter;
+  renderHome();
+}
+
+function trendingCard(m) {
+  const isLive = m.status === 'live' || m.status === 'ht';
+  const isUpcoming = m.status === 'upcoming';
+
   return `
-    <div class="match-card" onclick="openMatchDetail('${m.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:15px;padding:15px;cursor:pointer">
-      <div class="mc-header" style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:11px;color:var(--text3)">
-        <span>${m.leagueName || m.leagueId}</span>
-        ${m.status === 'live' ? '<span style="color:#ff6b6b;font-weight:700">🔴 LIVE</span>' : ''}
-      </div>
-      <div class="mc-teams" style="display:flex;align-items:center;justify-content:space-between">
-        <div class="mct-side" style="text-align:center;width:30%">
-          <img src="${m.homeLogo}" style="width:32px;height:32px;object-fit:contain" onerror="this.src='https://placehold.co/32x32/1a1a2e/ffffff?text=${m.home}'">
-          <div style="font-size:12px;margin-top:5px;font-weight:700">${m.home}</div>
+    <a class="trending-banner" href="#/match/${m.id}">
+      <div class="tb-overlay"></div>
+      <div class="tb-content">
+        <div class="tb-top">
+          <div class="tb-league">${m.leagueId || 'LEAGUE'}</div>
+          ${isLive
+            ? `<div class="tb-live">🔴 LIVE ${m.minute || ''}</div>`
+            : isUpcoming
+            ? `<div class="tb-upcoming">UPCOMING</div>`
+            : `<div class="tb-upcoming" style="color:var(--text3)">FT</div>`}
         </div>
-        <div class="mct-center" style="text-align:center;flex:1">
-          <div style="font-size:18px;font-weight:900;letter-spacing:1px">
-            ${isCricket ? `${m.homeCricketScore||'0/0'} - ${m.awayCricketScore||'0/0'}` : `${m.homeScore} - ${m.awayScore}`}
+        <div class="tb-main">
+          <div class="tb-team">
+            <div class="tb-crest-wrap">
+              <img src="${m.homeLogo}" alt="${m.home}" onerror="this.style.display='none'">
+            </div>
+            <div class="tb-team-name">${m.homeTeam || m.home}</div>
           </div>
-          <div style="font-size:10px;color:var(--acc2);margin-top:3px">${m.status === 'live' ? m.minute+"'" : formatTime(m.kickoffIST)}</div>
+          <div class="tb-center">
+            ${isUpcoming
+              ? `<div class="tb-vs">VS</div><div class="tb-time">${formatTime(m.kickoffIST)}</div>`
+              : `<div class="tb-score">${m.homeScore ?? 0} : ${m.awayScore ?? 0}</div>
+                 <div class="tb-time">${m.status === 'live' ? m.minute + "'" : 'FT'}</div>`}
+          </div>
+          <div class="tb-team">
+            <div class="tb-crest-wrap">
+              <img src="${m.awayLogo}" alt="${m.away}" onerror="this.style.display='none'">
+            </div>
+            <div class="tb-team-name">${m.awayTeam || m.away}</div>
+          </div>
         </div>
-        <div class="mct-side" style="text-align:center;width:30%">
-          <img src="${m.awayLogo}" style="width:32px;height:32px;object-fit:contain" onerror="this.src='https://placehold.co/32x32/1a1a2e/ffffff?text=${m.away}'">
-          <div style="font-size:12px;margin-top:5px;font-weight:700">${m.away}</div>
+        <div class="tb-footer">
+          <div class="tb-date">${m.kickoffDate || ''}</div>
+          <div class="tb-watch">WATCH NOW →</div>
         </div>
       </div>
-    </div>
+    </a>
   `;
 }
 
-function newsCard(n) {
-  return `
-    <div class="news-card" onclick="window.open('${n.articleUrl||'#'}', '_blank')" style="background:var(--card);border-radius:12px;padding:12px;display:flex;gap:12px;align-items:center;cursor:pointer">
-      <div class="nc-img" style="width:50px;height:50px;border-radius:10px;background:${n.gradient||'#1a1a2e'};display:flex;align-items:center;justify-content:center;font-size:24px">
-        ${n.emoji||'⚽'}
-      </div>
-      <div class="nc-body">
-        <h3 style="font-size:14px;margin:0;line-height:1.3">${n.title}</h3>
-        <p style="font-size:11px;color:var(--text3);margin:4px 0 0">${n.category||'News'}</p>
-      </div>
+/* ────────────────────────────────────────────────────
+   MATCHES SCREEN
+──────────────────────────────────────────────────── */
+
+function renderMatches() {
+  const el = document.getElementById('screen-matches');
+  if (!el) return;
+
+  const live = allMatches.filter(m => m.status === 'live' || m.status === 'ht');
+  const upcoming = allMatches.filter(m => m.status === 'upcoming')
+    .sort((a, b) => new Date((a.kickoffDate||'') + 'T' + (a.kickoffIST||'00:00')) - new Date((b.kickoffDate||'') + 'T' + (b.kickoffIST||'00:00')));
+  const finished = allMatches.filter(m => m.status === 'finished')
+    .sort((a, b) => new Date(b.kickoffDate||'') - new Date(a.kickoffDate||''));
+
+  el.innerHTML = `
+    <div class="section-head"><div class="section-title">🔴 Live Now</div></div>
+    <div class="match-list-body">
+      ${live.length ? live.map(m => matchCard(m)).join('') : '<div class="empty-state">No live matches</div>'}
     </div>
+
+    <div class="section-head" style="margin-top:8px"><div class="section-title">⏰ Upcoming</div></div>
+    <div class="match-list-body">
+      ${upcoming.length ? upcoming.map(m => matchCard(m)).join('') : '<div class="empty-state">No upcoming matches</div>'}
+    </div>
+
+    <div class="section-head" style="margin-top:8px"><div class="section-title">✅ Finished</div></div>
+    <div class="match-list-body">
+      ${finished.length ? finished.slice(0,10).map(m => matchCard(m)).join('') : '<div class="empty-state">No finished matches</div>'}
+    </div>
+    <div style="height:20px"></div>
   `;
 }
 
-function openMatchDetail(id) {
+/* ────────────────────────────────────────────────────
+   NEWS SCREEN
+──────────────────────────────────────────────────── */
+function renderNews() {
+  const el = document.getElementById('screen-news');
+  if (!el) return;
+
+  if (!allNews.length) {
+    el.innerHTML = '<div class="empty-state" style="margin-top:60px">No news articles yet</div>';
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="section-head"><div class="section-title">📰 All Articles</div></div>
+    <div class="news-full-grid">
+      ${allNews.map(n => newsCardFull(n)).join('')}
+    </div>
+    <div style="height:20px"></div>
+  `;
+}
+
+/* ────────────────────────────────────────────────────
+   STANDINGS SCREEN
+──────────────────────────────────────────────────── */
+function renderStandings() {
+  const el = document.getElementById('screen-standings');
+  if (!el) return;
+
+  const leagues = [
+    { id: 'EPL',       name: 'Premier League',    widgetId: 39  },
+    { id: 'LALIGA',    name: 'La Liga',            widgetId: 140 },
+    { id: 'UCL',       name: 'Champions League',   widgetId: 2   },
+    { id: 'BUNDESLIGA',name: 'Bundesliga',         widgetId: 78  },
+    { id: 'SERIEA',    name: 'Serie A',            widgetId: 135 },
+    { id: 'LIGUE1',    name: 'Ligue 1',            widgetId: 61  },
+  ];
+
+  el.innerHTML = `
+    <div class="section-head"><div class="section-title">📊 League Tables</div></div>
+    <div class="standings-tabs" id="standings-tabs">
+      ${leagues.map((l, i) => `
+        <button class="std-tab ${i===0?'active':''}" onclick="switchStandingsTab('${l.id}', this)">
+          ${LEAGUE_EMOJI[l.id] || '🏆'} ${l.name}
+        </button>
+      `).join('')}
+    </div>
+    ${leagues.map((l, i) => `
+      <div class="standings-panel ${i===0?'active':''}" id="std-panel-${l.id}">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:15px;overflow:hidden;margin:12px">
+          <iframe
+            src="https://www.scoreaxis.com/widget/standings/${l.widgetId}?autoHeight=1&font=Inter&links=0&color=2979ff"
+            style="width:100%;border:none;min-height:500px"
+            loading="lazy"
+            title="${l.name} Standings">
+          </iframe>
+        </div>
+      </div>
+    `).join('')}
+    <div style="height:20px"></div>
+  `;
+}
+
+function switchStandingsTab(id, btn) {
+  document.querySelectorAll('.std-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.standings-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const panel = document.getElementById('std-panel-' + id);
+  if (panel) panel.classList.add('active');
+}
+
+/* ────────────────────────────────────────────────────
+   LEAGUES SCREEN
+──────────────────────────────────────────────────── */
+function renderLeagues() {
+  const el = document.getElementById('screen-leagues');
+  if (!el) return;
+
+  const defaultLeagues = {
+    EPL:      { name:'Premier League',    country:'England', color:'#3d195b', logo:'https://media.api-sports.io/football/leagues/39.png' },
+    UCL:      { name:'Champions League',  country:'Europe',  color:'#003399', logo:'https://media.api-sports.io/football/leagues/2.png' },
+    LALIGA:   { name:'La Liga',           country:'Spain',   color:'#ee8200', logo:'https://media.api-sports.io/football/leagues/140.png' },
+    BUNDESLIGA:{ name:'Bundesliga',       country:'Germany', color:'#d20515', logo:'https://media.api-sports.io/football/leagues/78.png' },
+    SERIEA:   { name:'Serie A',           country:'Italy',   color:'#024594', logo:'https://media.api-sports.io/football/leagues/135.png' },
+    LIGUE1:   { name:'Ligue 1',           country:'France',  color:'#0057a8', logo:'https://media.api-sports.io/football/leagues/61.png' },
+    ISL:      { name:'Indian Super League',country:'India',  color:'#f58220', logo:'https://media.api-sports.io/football/leagues/323.png' },
+    IPL:      { name:'IPL Cricket',        country:'India',  color:'#d4af37', logo:'' },
+  };
+
+  const combined = { ...defaultLeagues };
+  allLeagues.forEach(l => { combined[l.id] = { ...(combined[l.id] || {}), ...l }; });
+
+  const matchCount = id => allMatches.filter(m => m.leagueId === id).length;
+
+  el.innerHTML = `
+    <div class="section-head"><div class="section-title">🏆 Leagues</div></div>
+    <div class="leagues-public-grid">
+      ${Object.entries(combined).map(([id, l]) => `
+        <div class="league-pub-card" style="border-top: 3px solid ${l.color || '#2979ff'}" onclick="location.hash='#/standings'">
+          ${l.logo ? `<img src="${l.logo}" class="league-pub-logo" onerror="this.style.display='none'">` : `<div style="font-size:40px;margin-bottom:10px">${LEAGUE_EMOJI[id]||'🏆'}</div>`}
+          <div class="league-pub-name">${l.name}</div>
+          <div class="league-pub-country">${l.country || ''}</div>
+          <div class="league-pub-matches">${matchCount(id)} matches</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="height:20px"></div>
+  `;
+}
+
+/* ────────────────────────────────────────────────────
+   MATCH DETAIL SCREEN
+──────────────────────────────────────────────────── */
+function renderMatchDetail(id) {
+  const el = document.getElementById('screen-match');
+  if (!el) return;
+
+  // Try to find from cache, or load from Firestore
   const m = allMatches.find(x => x.id === id);
-  if (!m) return;
-  
-  goScreen('detail');
-  const detailEl = document.getElementById('screen-detail');
+  if (!m) {
+    el.innerHTML = '<div class="empty-state" style="margin-top:80px">Loading match...</div>';
+    db.collection('matches').doc(id).get().then(doc => {
+      if (doc.exists) {
+        const match = { id: doc.id, ...doc.data() };
+        allMatches.push(match);
+        renderMatchDetail(id);
+      } else {
+        el.innerHTML = '<div class="empty-state" style="margin-top:80px">Match not found.</div>';
+      }
+    });
+    return;
+  }
+
   const isCricket = m.sport === 'cricket';
   const leagueId = WIDGET_LEAGUE_MAP[m.leagueId] || 39;
+  const enabledServers = (m.servers || []).filter(s => s.enabled !== false && s.url);
 
-  detailEl.innerHTML = `
-    <div class="match-hero" style="background:linear-gradient(to bottom, #1a2980, #26d0ce);padding:40px 20px;text-align:center;color:#fff">
-      <div class="mh-teams" style="display:flex;align-items:center;justify-content:space-around">
-        <div class="mh-team">
-          <img src="${m.homeLogo}" style="width:64px;height:64px;object-fit:contain" onerror="this.src='https://placehold.co/64x64/1a1a2e/ffffff?text=${m.home}'">
-          <h3 style="margin-top:10px">${m.homeTeam||m.home}</h3>
+  const scoreDisplay = isCricket
+    ? `<div class="dh-score">${m.homeCricketScore || '—'}</div>
+       <div class="dh-score-sep">vs</div>
+       <div class="dh-score">${m.awayCricketScore || '—'}</div>`
+    : `<div class="dh-score">${m.homeScore ?? 0} – ${m.awayScore ?? 0}</div>`;
+
+  const statusDisplay = isCricket
+    ? (m.cricketInfo || m.status)
+    : (m.status === 'live' ? `🔴 LIVE ${m.minute || ''}` : m.status === 'ht' ? '⏸ Half Time' : m.status === 'finished' ? '✅ Full Time' : `⏰ ${formatTime(m.kickoffIST)} IST`);
+
+  el.innerHTML = `
+    <!-- Hero -->
+    <div class="detail-hero">
+      <div class="detail-hero-glow"></div>
+      <div class="dh-league">${LEAGUE_EMOJI[m.leagueId] || '🏆'} ${m.leagueName || m.leagueId}</div>
+      <div class="dh-teams">
+        <div class="dh-team">
+          <div class="dh-crest">
+            <img src="${m.homeLogo}" alt="${m.homeTeam}" onerror="this.parentElement.innerHTML='${(m.home||'?')[0]}'">
+          </div>
+          <div class="dh-name">${m.homeTeam || m.home}</div>
         </div>
-        <div class="mh-score" style="text-align:center">
-           ${isCricket ? `<h1 style="font-size:32px;margin:0">${m.homeCricketScore||'0/0'} - ${m.awayCricketScore||'0/0'}</h1><p style="font-size:12px;opacity:0.8">${m.cricketInfo||''}</p>` : `<h1 style="font-size:40px;margin:0">${m.homeScore} - ${m.awayScore}</h1><p style="font-size:14px;opacity:0.8">${m.status==='live'?m.minute+"'":'Upcoming'}</p>`}
+        <div class="dh-score-box">
+          ${scoreDisplay}
+          <div class="dh-status ${m.status}">${statusDisplay}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">${m.kickoffDate || ''}</div>
         </div>
-        <div class="mh-team">
-          <img src="${m.awayLogo}" style="width:64px;height:64px;object-fit:contain" onerror="this.src='https://placehold.co/64x64/1a1a2e/ffffff?text=${m.away}'">
-          <h3 style="margin-top:10px">${m.awayTeam||m.away}</h3>
+        <div class="dh-team">
+          <div class="dh-crest">
+            <img src="${m.awayLogo}" alt="${m.awayTeam}" onerror="this.parentElement.innerHTML='${(m.away||'?')[0]}'">
+          </div>
+          <div class="dh-name">${m.awayTeam || m.away}</div>
         </div>
       </div>
     </div>
 
-    <div class="stream-zone" style="padding:20px">
-      <h3 style="margin-bottom:15px;font-family:'Rajdhani'">🎥 Select Video Server</h3>
-      <div class="server-grid" style="display:grid;gap:10px">
-        ${m.servers && m.servers.length ? m.servers.map((s,i) => `
-          <button class="btn-srv" onclick="playStream('${s.url}','${s.type}')" style="background:var(--card);border:1px solid var(--border);padding:15px;border-radius:12px;color:var(--text1);text-align:left;cursor:pointer;font-weight:600">🎥 Server ${i+1} - ${s.label}</button>
-        `).join('') : '<p style=\"color:var(--text3)\">No servers available yet.</p>'}
-      </div>
-        ${m.servers && m.servers.length ? m.servers.map((s,i) => `
-          <button class="btn-srv" onclick="playStream('${s.url}','${s.type}')" style="background:var(--card);border:1px solid var(--border);padding:15px;border-radius:12px;color:var(--text1);text-align:left;cursor:pointer;font-weight:600">🎥 Server ${i+1} - ${s.label}</button>
-        `).join('') : '<p style="color:var(--text3)">No servers available yet.</p>'}
-      </div>
-    </div>
-
-    ${!isCricket ? `
-    <div class="stats-zone" style="margin:20px;background:var(--card);border-radius:15px;overflow:hidden;border:1px solid var(--border)">
-      <div style="padding:12px;font-weight:700;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02)">📊 Live Stats & Table</div>
-      <iframe src="https://www.scoreaxis.com/widget/standings/${leagueId}?autoHeight=1&font=Inter&links=0&color=2979ff" 
-              style="width:100%;border:none;height:450px"></iframe>
+    <!-- Match Preview / Analysis -->
+    ${m.preview ? `
+    <div class="detail-section">
+      <div class="detail-section-title">📝 Match Preview</div>
+      <div class="match-preview-box">${m.preview.split('\n').filter(l=>l.trim()).map(l=>`<p>${l}</p>`).join('')}</div>
     </div>` : ''}
+
+    <!-- Stream Servers -->
+    <div class="detail-section">
+      <div class="detail-section-title">🎥 Watch Live</div>
+      ${enabledServers.length
+        ? enabledServers.map((s, i) => `
+          <div class="server-tile" onclick="playStream('${s.url}', '${s.type || 'redirect'}', '${m.homeTeam || m.home}', '${m.awayTeam || m.away}')">
+            <div class="server-icon">📺</div>
+            <div class="server-info">
+              <div class="server-name">Server ${i + 1}${s.label ? ' — ' + s.label : ''}</div>
+              <div class="server-type">${s.type === 'm3u8' ? 'HD Live Stream' : s.type === 'iframe' ? 'Embedded Player' : 'Live Stream'}</div>
+            </div>
+            <div class="play-icon">▶</div>
+          </div>`)
+          .join('')
+        : `<div class="empty-state">No streams available yet. Check back soon!</div>`}
+    </div>
+
+    <!-- Video Player Area (hidden until stream selected) -->
+    <div id="video-zone" class="detail-section" style="display:none">
+      <div class="detail-section-title" id="video-title">Now Playing</div>
+      <div class="video-container" id="video-container"></div>
+    </div>
+
+    <!-- League Table (ScoreAxis) for football -->
+    ${!isCricket ? `
+    <div class="detail-section">
+      <div class="detail-section-title">📊 League Table</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:15px;overflow:hidden">
+        <iframe
+          src="https://www.scoreaxis.com/widget/standings/${leagueId}?autoHeight=1&font=Inter&links=0&color=2979ff"
+          style="width:100%;border:none;min-height:450px"
+          loading="lazy"
+          title="League Standings">
+        </iframe>
+      </div>
+    </div>` : ''}
+
+    <div style="height:30px"></div>
   `;
 }
 
-function playStream(url, type) {
-  window.open(url, '_blank');
+/* ────────────────────────────────────────────────────
+   STREAM PLAYER
+──────────────────────────────────────────────────── */
+function playStream(url, type, home, away) {
+  const zone = document.getElementById('video-zone');
+  const container = document.getElementById('video-container');
+  const titleEl = document.getElementById('video-title');
+
+  if (!zone || !container) return;
+
+  // Scroll to the video zone
+  zone.style.display = 'block';
+  if (titleEl) titleEl.textContent = `▶ ${home} vs ${away}`;
+
+  // Clean up previous player
+  container.innerHTML = '';
+
+  if (type === 'redirect') {
+    window.open(url, '_blank');
+    zone.style.display = 'none';
+    return;
+  }
+
+  if (type === 'iframe') {
+    container.style.aspectRatio = '16/9';
+    container.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen" style="width:100%;height:100%;border:none"></iframe>`;
+  } else if (type === 'html') {
+    container.style.aspectRatio = '16/9';
+    container.innerHTML = url;
+  } else if (type === 'm3u8') {
+    const video = document.createElement('video');
+    video.controls = true;
+    video.autoplay = true;
+    video.style.width = '100%';
+    video.style.borderRadius = '12px';
+    container.appendChild(video);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(url);
+      hls.attachMedia(video);
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = url;
+    }
+  }
+
+  zone.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/* ────────────────────────────────────────────────────
+   ARTICLE SCREEN
+──────────────────────────────────────────────────── */
+function renderArticle(id) {
+  const el = document.getElementById('screen-article');
+  if (!el) return;
+
+  const n = allNews.find(x => x.id === id);
+  if (!n) {
+    el.innerHTML = '<div class="empty-state" style="margin-top:80px">Loading article...</div>';
+    db.collection('news').doc(id).get().then(doc => {
+      if (doc.exists) {
+        const article = { id: doc.id, ...doc.data() };
+        allNews.push(article);
+        renderArticle(id);
+      } else {
+        el.innerHTML = '<div class="empty-state" style="margin-top:80px">Article not found.</div>';
+      }
+    });
+    return;
+  }
+
+  // If external article, redirect
+  if (n.articleType === 'external' && n.articleUrl) {
+    window.open(n.articleUrl, '_blank');
+    history.back();
+    return;
+  }
+
+  const pubDate = n.publishedAt?.toDate
+    ? n.publishedAt.toDate().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' })
+    : '';
+
+  // Format content: split by newlines, wrap paragraphs
+  const formattedContent = (n.content || '')
+    .split('\n')
+    .reduce((acc, line) => {
+      if (!line.trim()) return acc + '</p><p class="article-para">';
+      return acc + line + ' ';
+    }, '<p class="article-para">')
+    + '</p>';
+
+  el.innerHTML = `
+    <div class="article-hero" style="background:${n.gradient || 'linear-gradient(135deg,#0d1f4a,#05080f)'}">
+      <div class="article-hero-emoji">${n.emoji || '📰'}</div>
+      <div class="article-hero-cat">${n.category || 'News'}</div>
+    </div>
+    <div class="article-body">
+      <h1 class="article-title">${n.title}</h1>
+      ${pubDate ? `<div class="article-meta">📅 ${pubDate}</div>` : ''}
+      <div class="article-divider"></div>
+      ${n.thumbnailUrl ? `<img src="${n.thumbnailUrl}" class="article-thumbnail" alt="${n.title}">` : ''}
+      <div class="article-content">
+        ${formattedContent}
+      </div>
+    </div>
+    <div style="height:40px"></div>
+  `;
+
+  // Update header title
+  const headerTitle = document.getElementById('header-title');
+  if (headerTitle) headerTitle.textContent = n.category || 'Article';
+}
+
+/* ────────────────────────────────────────────────────
+   CARD COMPONENTS
+──────────────────────────────────────────────────── */
+function matchCard(m) {
+  const isCricket = m.sport === 'cricket';
+  const isLive = m.status === 'live' || m.status === 'ht';
+
+  const scoreOrTime = isCricket
+    ? `<div class="mc-cricket-score">${m.homeCricketScore || '0/0'} vs ${m.awayCricketScore || '0/0'}</div>`
+    : m.status === 'upcoming'
+      ? `<div class="mc-time">${formatTime(m.kickoffIST)}</div>`
+      : `<div class="mc-score">${m.homeScore ?? 0} – ${m.awayScore ?? 0}</div>`;
+
+  const statusLabel = m.status === 'live'
+    ? `<div class="mc-status live">🔴 LIVE ${m.minute || ''}</div>`
+    : m.status === 'ht'
+    ? `<div class="mc-status ht">⏸ HT</div>`
+    : m.status === 'finished'
+    ? `<div class="mc-status ft">FT</div>`
+    : `<div class="mc-status upcoming">${m.kickoffDate || ''}</div>`;
+
+  return `
+    <a class="match-card ${isLive ? 'is-live' : ''}" href="#/match/${m.id}">
+      <div class="mc-team left-team">
+        <div class="mc-crest-wrap">
+          <img src="${m.homeLogo}" class="mc-crest-img" alt="${m.homeTeam||m.home}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <span class="mc-crest-fallback" style="display:none">${(m.home||'?')[0]}</span>
+        </div>
+        <div class="mc-name">${m.homeTeam || m.home}</div>
+      </div>
+      <div class="mc-center">
+        ${scoreOrTime}
+        ${statusLabel}
+      </div>
+      <div class="mc-team right-team">
+        <div class="mc-crest-wrap">
+          <img src="${m.awayLogo}" class="mc-crest-img" alt="${m.awayTeam||m.away}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <span class="mc-crest-fallback" style="display:none">${(m.away||'?')[0]}</span>
+        </div>
+        <div class="mc-name">${m.awayTeam || m.away}</div>
+      </div>
+    </a>
+  `;
+}
+
+function newsCardSm(n) {
+  const isInternal = n.articleType === 'internal' || (n.content && n.content.trim());
+  const href = isInternal ? `#/article/${n.id}` : (n.articleUrl || '#');
+  const target = isInternal ? '' : 'target="_blank"';
+
+  const imgContent = n.thumbnailUrl
+    ? `<img src="${n.thumbnailUrl}" class="news-thumb-img" alt="${n.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      + `<div class="news-thumb-emoji" style="display:none">${n.emoji || '📰'}</div>`
+    : `<div class="news-thumb-emoji">${n.emoji || '📰'}</div>`;
+
+  return `
+    <a class="news-card-sm" href="${href}" ${target}>
+      <div class="news-img-sm" style="background:${n.gradient || '#0d1428'}">
+        ${imgContent}
+        <div class="news-cat-badge">${n.category || 'News'}</div>
+      </div>
+      <div class="news-card-body">
+        <h3 class="news-card-title">${n.title}</h3>
+        <div class="news-card-meta">${n.publishedAt?.toDate ? n.publishedAt.toDate().toLocaleDateString('en-IN') : ''}</div>
+      </div>
+    </a>
+  `;
+}
+
+
+function newsCardFull(n) {
+  const isInternal = n.articleType === 'internal' || (n.content && n.content.trim());
+  const href = isInternal ? `#/article/${n.id}` : (n.articleUrl || '#');
+  const target = isInternal ? '' : 'target="_blank"';
+
+  return `
+    <a class="news-card-full" href="${href}" ${target}>
+      <div class="ncf-img" style="background:${n.gradient || '#1a1a2e'}">
+        <span style="font-size:44px">${n.emoji || '📰'}</span>
+        ${isInternal ? '<div class="ncf-internal-badge">Full Article</div>' : ''}
+      </div>
+      <div class="ncf-body">
+        <div class="ncf-cat">${n.category || 'News'}</div>
+        <h3 class="ncf-title">${n.title}</h3>
+        <div class="ncf-meta">${n.publishedAt?.toDate ? n.publishedAt.toDate().toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) : ''}</div>
+      </div>
+      <div class="ncf-arrow">›</div>
+    </a>
+  `;
+}
+
+/* ────────────────────────────────────────────────────
+   UTILS
+──────────────────────────────────────────────────── */
 function formatTime(t) {
   if (!t) return '';
   const [h, m] = t.split(':');
@@ -228,5 +768,11 @@ function formatTime(t) {
   return `${hh}:${m} ${ampm}`;
 }
 
-document.addEventListener('DOMContentLoaded', initApp);
-
+/* ────────────────────────────────────────────────────
+   BOOTSTRAP
+──────────────────────────────────────────────────── */
+window.addEventListener('hashchange', route);
+window.addEventListener('DOMContentLoaded', () => {
+  initApp();
+  route();
+});

@@ -281,8 +281,9 @@ async function fetchMatchesFromApi() {
     const future = new Date(); future.setDate(today.getDate() + days);
     const d1 = today.toISOString().split('T')[0], d2 = future.toISOString().split('T')[0];
 
-    const url = `/fetch_matches.php?comp=${comp}&dateFrom=${d1}&dateTo=${d2}&key=${apiKey}`;
-    const res = await fetch(url);
+    const targetUrl = encodeURIComponent(`https://api.football-data.org/v4/competitions/${comp}/matches?dateFrom=${d1}&dateTo=${d2}`);
+    const url = `https://corsproxy.io/?${targetUrl}`;
+    const res = await fetch(url, { headers: { 'X-Auth-Token': apiKey } });
     const data = await res.json();
     if(!res.ok) throw new Error(data.message || 'API Error');
 
@@ -778,7 +779,7 @@ async function sendPushNotification() {
   result.style.color = '#90caf9';
 
   try {
-    const res = await fetch('/api/send-notification', {
+    const res = await fetch('send_notification.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, body, imageUrl })
@@ -807,7 +808,7 @@ async function autoSendLiveNotification(m) {
   const imageUrl = m.homeLogo || m.awayLogo || '';
 
   try {
-    await fetch('/api/send-notification', {
+    await fetch('send_notification.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, body, imageUrl })

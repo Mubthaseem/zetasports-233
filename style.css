@@ -389,15 +389,9 @@ iframe { width: 100%; height: 100%; border: none; }
   100% { transform: scale(1); opacity: 1; }
 }
 
-.hidden { display: none !important; }
+/* nav-item as <a> links */
+.nav-item { text-decoration: none; }
 
-  position:absolute;top:4px;right:4px;
-  background:var(--red);color:#fff;
-  font-size:9px;font-weight:700;
-  width:14px;height:14px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-}
-.hidden{display:none!important}
 
 /* ── Screens ─────────────────────────────────────────────────── */
 .screens-wrapper{
@@ -1210,3 +1204,335 @@ iframe { width: 100%; height: 100%; border: none; }
   filter: brightness(1.2);
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
+
+/* ── GLOBAL UTILITIES ───────────────────────────────────────── */
+.hidden { display: none !important; }
+.empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text3);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ── MATCH CARD — crest fix ─────────────────────────────────── */
+.mc-crest-wrap {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg2);
+  font-size: 13px; font-weight: 800; color: var(--accent2);
+  flex-shrink: 0;
+}
+.mc-crest-img { width: 100%; height: 100%; object-fit: contain; }
+.mc-crest-fallback { font-size: 12px; font-weight: 800; color: var(--accent2); }
+.mc-cricket-score {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: var(--text1); letter-spacing: 0.5px;
+}
+
+/* ── MATCH DETAIL — sections ───────────────────────────────── */
+.detail-section {
+  margin: 0 12px 16px;
+}
+.detail-section-title {
+  font-size: 13px; font-weight: 800;
+  color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.6px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.detail-section-title::before {
+  content: ''; width: 3px; height: 14px;
+  background: var(--accent); border-radius: 2px; display: block;
+}
+
+/* Match preview text box */
+.match-preview-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.match-preview-box p {
+  font-size: 13px; line-height: 1.8; color: var(--text2);
+  margin-bottom: 8px;
+}
+.match-preview-box p:last-child { margin-bottom: 0; }
+
+/* Server tiles */
+.server-tile {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+.server-tile:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  transform: translateX(3px);
+}
+.server-tile .server-icon { font-size: 22px; flex-shrink: 0; }
+.server-tile .server-info { flex: 1; }
+.server-tile .server-name { font-size: 14px; font-weight: 700; color: var(--text1); }
+.server-tile .server-type { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.server-tile .play-icon { font-size: 20px; color: var(--accent); }
+
+/* Video container */
+.video-container {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.video-container iframe,
+.video-container video {
+  width: 100%; height: 100%; border: none; display: block;
+}
+
+/* dh-crest image inside */
+.dh-crest img {
+  width: 100%; height: 100%;
+  object-fit: contain; border-radius: 50%;
+}
+.dh-score-sep {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 28px; font-weight: 700;
+  color: var(--text3);
+  display: block; margin: 4px 0;
+}
+
+/* ── NEWS FULL GRID (news screen) ───────────────────────────── */
+.news-full-grid {
+  display: flex; flex-direction: column; gap: 0;
+  padding: 0 0 8px;
+}
+.news-card-full {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+  text-decoration: none;
+}
+.news-card-full:hover { background: var(--card); }
+.ncf-img {
+  width: 72px; height: 72px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.ncf-internal-badge {
+  position: absolute; bottom: 4px; left: 4px;
+  font-size: 8px; font-weight: 700;
+  background: var(--accent); color: #fff;
+  padding: 2px 6px; border-radius: 8px;
+}
+.ncf-body { flex: 1; min-width: 0; }
+.ncf-cat {
+  font-size: 10px; font-weight: 700;
+  color: var(--accent); text-transform: uppercase;
+  letter-spacing: 0.6px; margin-bottom: 4px;
+}
+.ncf-title {
+  font-size: 13px; font-weight: 600; color: var(--text1);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ncf-meta { font-size: 10px; color: var(--text3); margin-top: 4px; }
+.ncf-arrow {
+  font-size: 22px; color: var(--text3); flex-shrink: 0;
+}
+
+/* ── ARTICLE READER ────────────────────────────────────────── */
+.article-hero {
+  height: 180px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px;
+}
+.article-hero-emoji { font-size: 60px; }
+.article-hero-cat {
+  font-size: 11px; font-weight: 700;
+  color: rgba(255,255,255,0.7);
+  text-transform: uppercase; letter-spacing: 1px;
+  background: rgba(0,0,0,0.4);
+  padding: 4px 12px; border-radius: 20px;
+}
+.article-body {
+  padding: 20px 16px 0;
+}
+.article-title {
+  font-size: 22px; font-weight: 800;
+  color: var(--text1); line-height: 1.35;
+  margin: 0 0 8px;
+}
+.article-meta {
+  font-size: 12px; color: var(--text3);
+  margin-bottom: 16px;
+}
+.article-divider {
+  height: 1px; background: var(--border);
+  margin-bottom: 20px;
+}
+.article-thumbnail {
+  width: 100%; border-radius: 12px;
+  margin-bottom: 20px; display: block;
+  object-fit: cover; max-height: 220px;
+}
+.article-content { }
+.article-para {
+  font-size: 15px; line-height: 1.85;
+  color: var(--text2); margin-bottom: 16px;
+}
+.article-para:empty { display: none; }
+
+/* ── STANDINGS TABS ─────────────────────────────────────────── */
+.standings-tabs {
+  display: flex; gap: 8px;
+  padding: 0 12px 12px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.standings-tabs::-webkit-scrollbar { display: none; }
+.std-tab {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text3);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+  white-space: nowrap;
+}
+.std-tab.active, .std-tab:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent2);
+}
+.standings-panel { display: none; }
+.standings-panel.active { display: block; }
+
+/* ── LEAGUES PUBLIC GRID ───────────────────────────────────── */
+.leagues-public-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+@media (min-width: 600px) {
+  .leagues-public-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.league-pub-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  padding: 18px 12px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px; cursor: pointer; transition: all 0.2s;
+  text-align: center;
+}
+.league-pub-card:hover {
+  border-color: var(--border2);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.league-pub-logo {
+  height: 48px; width: auto;
+  object-fit: contain; margin-bottom: 6px;
+}
+.league-pub-name {
+  font-size: 13px; font-weight: 700; color: var(--text1);
+}
+.league-pub-country {
+  font-size: 11px; color: var(--text3);
+}
+.league-pub-matches {
+  font-size: 11px; font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-radius: 20px; padding: 2px 10px;
+  margin-top: 2px;
+}
+
+/* ── BACK BUTTON ────────────────────────────────────────────── */
+.back-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  border: 1px solid var(--border);
+  color: var(--accent2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  transition: all 0.2s;
+}
+.back-btn:hover { background: var(--accent); color: #fff; }
+
+/* Header title text */
+.header-title {
+  font-size: 16px; font-weight: 700; color: var(--text1);
+  flex: 1;
+}
+
+/* ── TRENDING BANNER as <a> ─────────────────────────────────── */
+a.trending-banner { text-decoration: none; display: block; }
+.tb-crest-wrap {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.tb-crest-wrap img { width: 100%; height: 100%; object-fit: contain; }
+.tb-time { font-size: 13px; font-weight: 700; color: var(--accent2); margin-top: 4px; }
+.tb-watch { color: var(--accent2); font-size: 11px; font-weight: 800; letter-spacing: 0.5px; }
+
+/* ── DATE CHIP — active = red like screenshot ───────────────── */
+.date-chip.active {
+  background: var(--red) !important;
+  border-color: var(--red) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(255,23,68,0.35);
+}
+
+/* ── NO MATCHES STATE ───────────────────────────────────────── */
+.no-matches-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 20px;
+  gap: 8px;
+}
+.nms-icon { font-size: 48px; opacity: 0.5; }
+.nms-title { font-size: 16px; font-weight: 700; color: var(--text2); }
+.nms-sub { font-size: 13px; color: var(--text3); }
+
+/* ── NEWS THUMBNAIL inside card ─────────────────────────────── */
+.news-thumb-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 0;
+}
+.news-thumb-emoji {
+  font-size: 44px;
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+}
+
+

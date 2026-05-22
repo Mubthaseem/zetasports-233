@@ -281,8 +281,8 @@ async function fetchMatchesFromApi() {
     const future = new Date(); future.setDate(today.getDate() + days);
     const d1 = today.toISOString().split('T')[0], d2 = future.toISOString().split('T')[0];
 
-    const url = `/api/football/competitions/${comp}/matches?dateFrom=${d1}&dateTo=${d2}`;
-    const res = await fetch(url, { headers: { 'X-Auth-Token': apiKey } });
+    const url = `/fetch_matches.php?comp=${comp}&dateFrom=${d1}&dateTo=${d2}&key=${apiKey}`;
+    const res = await fetch(url);
     const data = await res.json();
     if(!res.ok) throw new Error(data.message || 'API Error');
 

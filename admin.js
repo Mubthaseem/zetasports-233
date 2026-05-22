@@ -390,13 +390,14 @@ function openMatchModal(id=null) {
     document.getElementById('f-homeCricketScore').value = m.homeCricketScore || '';
     document.getElementById('f-awayCricketScore').value = m.awayCricketScore || '';
     document.getElementById('f-cricketInfo').value = m.cricketInfo || '';
+    document.getElementById('f-liveTracker').value = m.liveTracker || '';
     toggleScoreFields();
   }
   openModal('match-modal');
 }
 
 function clearMatchForm() {
-  ['f-homeTeam','f-awayTeam','f-home','f-away','f-homeLogo','f-awayLogo','f-kickoffDate','f-kickoffIST','f-minute','f-leagueName'].forEach(id=>{document.getElementById(id).value='';});
+  ['f-homeTeam','f-awayTeam','f-home','f-away','f-homeLogo','f-awayLogo','f-kickoffDate','f-kickoffIST','f-minute','f-leagueName','f-liveTracker'].forEach(id=>{document.getElementById(id).value='';});
   document.getElementById('f-leagueId').value='PL';
   document.getElementById('f-status').value='upcoming';
   document.getElementById('f-homeScore').value=0;
@@ -477,6 +478,7 @@ async function saveMatch() {
     servers,
     preview,
     apkStream: getValue('f-apkStream'),
+    liveTracker: getValue('f-liveTracker'),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 

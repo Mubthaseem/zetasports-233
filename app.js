@@ -539,6 +539,14 @@ function renderMatchDetail(id) {
       <div class="match-preview-box">${m.preview.split('\n').filter(l=>l.trim()).map(l=>`<p>${l}</p>`).join('')}</div>
     </div>` : ''}
 
+    <!-- Live Tracker Embed -->
+    ${m.liveTracker ? `
+    <div class="detail-section">
+      <div class="detail-section-title">⚡ Live Match Tracker</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:15px;overflow:hidden;min-height:200px" id="live-tracker-container">
+      </div>
+    </div>` : ''}
+
     <!-- Stream Servers -->
     <div class="detail-section">
       <div class="detail-section-title">🎥 Watch Live</div>
@@ -576,6 +584,10 @@ function renderMatchDetail(id) {
   const embedCode = allLeagues.find(l => l.id === m.leagueId)?.embedCode;
   if (!isCricket && appSettings.tablesEnabled !== false && embedCode) {
     injectHTMLSafe('match-embed-container', embedCode);
+  }
+
+  if (m.liveTracker) {
+    injectHTMLSafe('live-tracker-container', m.liveTracker);
   }
 }
 

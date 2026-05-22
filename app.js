@@ -375,48 +375,91 @@ function renderNews() {
 /* ────────────────────────────────────────────────────
    STANDINGS SCREEN
 ──────────────────────────────────────────────────── */
-function renderStandings() {
+async function renderStandings() {
   const el = document.getElementById('screen-standings');
   if (!el) return;
 
-  const leagues = [
-    { id: 'EPL',       name: 'Premier League',    widgetId: 39  },
-    { id: 'LALIGA',    name: 'La Liga',            widgetId: 140 },
-    { id: 'UCL',       name: 'Champions League',   widgetId: 2   },
-    { id: 'BUNDESLIGA',name: 'Bundesliga',         widgetId: 78  },
-    { id: 'SERIEA',    name: 'Serie A',            widgetId: 135 },
-    { id: 'LIGUE1',    name: 'Ligue 1',            widgetId: 61  },
-  ];
-
   el.innerHTML = `
     <div class="section-head"><div class="section-title">📊 League Tables</div></div>
-    <div class="standings-tabs" id="standings-tabs">
-      ${leagues.map((l, i) => `
-        <button class="std-tab ${i===0?'active':''}" onclick="switchStandingsTab('${l.id}', this)">
-          ${LEAGUE_EMOJI[l.id] || '🏆'} ${l.name}
-        </button>
-      `).join('')}
+    <div class="empty-state" style="margin-top:60px">
+      <div class="loading-spinner"></div>
+      <div style="margin-top:16px">Loading Tables...</div>
     </div>
-    ${leagues.map((l, i) => {
-      const dbL = allLeagues.find(al => al.id === l.id) || {};
-      const embed = dbL.embedCode || '';
-      return `
-      <div class="standings-panel ${i===0?'active':''}" id="std-panel-${l.id}">
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:15px;overflow:hidden;margin:12px" id="embed-container-${l.id}">
-          ${embed ? '' : `<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px">No table configured. Add embed code in Admin Panel.</div>`}
-        </div>
-      </div>
-    `}).join('')}
-    <div style="height:20px"></div>
   `;
 
-  // Inject script tags correctly
-  leagues.forEach((l) => {
-    const dbL = allLeagues.find(al => al.id === l.id) || {};
-    if (dbL.embedCode) {
-      injectHTMLSafe(`embed-container-${l.id}`, dbL.embedCode);
+  try {
+    const res = await fetch('fetch_standings.php');
+    if (!res.ok) throw new Error('Failed to fetch standings');
+    const json = await res.json();
+    const data = json.data;
+
+    if (!data || Object.keys(data).length === 0) {
+      el.innerHTML = '<div class="empty-state" style="margin-top:60px">No standings data available.</div>';
+      return;
     }
-  });
+
+    const leagueKeys = Object.keys(data);
+    
+    let html = `
+      <div class="section-head"><div class="section-title">📊 League Tables</div></div>
+      <div class="standings-tabs" id="standings-tabs">
+        ${leagueKeys.map((k, i) => `
+          <button class="std-tab ${i===0?'active':''}" onclick="switchStandingsTab('${k}', this)">
+            <img src="${data[k].emblem}" style="width:16px;height:16px;object-fit:contain" onerror="this.style.display='none'">
+            ${data[k].leagueName}
+          </button>
+        `).join('')}
+      </div>
+    `;
+
+    leagueKeys.forEach((k, i) => {
+      const lg = data[k];
+      html += `
+        <div class="standings-panel ${i===0?'active':''}" id="std-panel-${k}">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:15px;overflow:hidden;margin:12px;overflow-x:auto;">
+            <table class="native-standings-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th style="text-align:left">Team</th>
+                  <th>P</th>
+                  <th>W</th>
+                  <th>D</th>
+                  <th>L</th>
+                  <th>GD</th>
+                  <th>Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${lg.table.map(row => `
+                  <tr>
+                    <td class="st-pos">${row.position}</td>
+                    <td class="st-team">
+                      <img src="${row.crest}" alt="${row.teamName}" onerror="this.src=''">
+                      <span>${row.teamName}</span>
+                    </td>
+                    <td>${row.played}</td>
+                    <td>${row.won}</td>
+                    <td>${row.drawn}</td>
+                    <td>${row.lost}</td>
+                    <td>${row.goalDifference > 0 ? '+'+row.goalDifference : row.goalDifference}</td>
+                    <td class="st-pts">${row.points}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    });
+
+    html += '<div style="height:20px"></div>';
+    el.innerHTML = html;
+
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state" style="margin-top:60px">Could not load standings.</div>`;
+    console.error(e);
+  }
 }
 
 function switchStandingsTab(id, btn) {
@@ -489,6 +532,13 @@ function renderMatchDetail(id) {
     return;
   }
 
+  // Increment Match Views
+  if (!sessionStorage.getItem('viewed_match_' + id)) {
+    db.collection('matches').doc(id).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
+    sessionStorage.setItem('viewed_match_' + id, 'true');
+    m.views = (m.views || 0) + 1;
+  }
+
   const isCricket = m.sport === 'cricket';
   const leagueId = WIDGET_LEAGUE_MAP[m.leagueId] || 39;
   const enabledServers = (m.servers || []).filter(s => s.enabled !== false && s.url);
@@ -521,7 +571,11 @@ function renderMatchDetail(id) {
         <div class="dh-score-box">
           ${scoreDisplay}
           <div class="dh-status ${m.status}">${statusDisplay}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">${m.kickoffDate || ''}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px">
+            <span>${m.kickoffDate || ''}</span>
+            <span style="font-size:10px;opacity:0.6">&bull;</span>
+            <span>👁️ ${(m.views || 0).toLocaleString()}</span>
+          </div>
         </div>
         <div class="dh-team">
           <div class="dh-crest">
@@ -669,6 +723,13 @@ function renderArticle(id) {
     return;
   }
 
+  // Increment Article Views
+  if (!sessionStorage.getItem('viewed_news_' + id)) {
+    db.collection('news').doc(id).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
+    sessionStorage.setItem('viewed_news_' + id, 'true');
+    n.views = (n.views || 0) + 1;
+  }
+
   const pubDate = n.publishedAt?.toDate
     ? n.publishedAt.toDate().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' })
     : '';
@@ -694,7 +755,9 @@ function renderArticle(id) {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         </button>
       </div>
-      ${pubDate ? `<div class="article-meta">📅 ${pubDate}</div>` : ''}
+      <div class="article-meta">
+        ${pubDate ? `📅 ${pubDate} &nbsp;&bull;&nbsp; ` : ''} 👁️ ${(n.views || 0).toLocaleString()} views
+      </div>
       <div class="article-divider"></div>
       ${n.thumbnailUrl ? `<img src="${n.thumbnailUrl}" class="article-thumbnail" alt="${n.title}">` : ''}
       <div class="article-content">

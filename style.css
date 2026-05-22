@@ -1566,5 +1566,51 @@ a.trending-banner { text-decoration: none; display: block; }
   background: rgba(41, 121, 255, 0.25);
 }
 
+/* ── NATIVE STANDINGS TABLE ────────────────────────────────── */
+.native-standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 400px;
+}
+.native-standings-table th {
+  padding: 12px 10px;
+  color: var(--text3);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  text-align: center;
+}
+.native-standings-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  color: var(--text2);
+  text-align: center;
+}
+.native-standings-table tr:last-child td {
+  border-bottom: none;
+}
+.native-standings-table .st-pos {
+  font-weight: 700;
+  color: var(--text3);
+}
+.native-standings-table .st-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text1);
+}
+.native-standings-table .st-team img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+.native-standings-table .st-pts {
+  font-weight: 800;
+  color: var(--gold);
+}
+
 
 

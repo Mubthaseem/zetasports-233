@@ -246,13 +246,14 @@ function renderMatchTable() {
       <td>${formatTime12(m.kickoffIST)||'—'}</td>
       <td>${statusBadge(m.status,m.minute)}</td>
       <td>${m.status!=='upcoming'?`<b>${m.homeScore??'-'} – ${m.awayScore??'-'}</b>`:'—'}</td>
+      <td>👁️ <b>${(m.views||0).toLocaleString()}</b></td>
       <td style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-sm btn-edit" onclick="openMatchModal('${m.id}')">✏️ Edit</button>
         <button class="btn btn-sm btn-danger" onclick="deleteMatch('${m.id}','${(m.homeTeam||m.home)+' vs '+(m.awayTeam||m.away)}')">🗑</button>
         <button class="btn btn-sm" style="background:#ffc107;color:#000" onclick="prepareQuickNotification('${m.id}')">🔔</button>
       </td>
     </tr>`).join('')
-    : '<tr><td colspan="8" class="empty-state">No matches yet. Click "+ Add Match" to get started.</td></tr>';
+    : '<tr><td colspan="9" class="empty-state">No matches yet. Click "+ Add Match" to get started.</td></tr>';
 }
 
 /* ── AUTO FETCH MODAL ── */
@@ -281,9 +282,8 @@ async function fetchMatchesFromApi() {
     const future = new Date(); future.setDate(today.getDate() + days);
     const d1 = today.toISOString().split('T')[0], d2 = future.toISOString().split('T')[0];
 
-    const targetUrl = encodeURIComponent(`https://api.football-data.org/v4/competitions/${comp}/matches?dateFrom=${d1}&dateTo=${d2}`);
-    const url = `https://corsproxy.io/?${targetUrl}`;
-    const res = await fetch(url, { headers: { 'X-Auth-Token': apiKey } });
+    const url = `fetch_matches.php?comp=${comp}&dateFrom=${d1}&dateTo=${d2}&key=${encodeURIComponent(apiKey)}`;
+    const res = await fetch(url);
     const data = await res.json();
     if(!res.ok) throw new Error(data.message || 'API Error');
 
@@ -391,6 +391,7 @@ function openMatchModal(id=null) {
     document.getElementById('f-awayCricketScore').value = m.awayCricketScore || '';
     document.getElementById('f-cricketInfo').value = m.cricketInfo || '';
     document.getElementById('f-liveTracker').value = m.liveTracker || '';
+    document.getElementById('f-views').value = m.views || 0;
     toggleScoreFields();
   }
   openModal('match-modal');
@@ -404,6 +405,7 @@ function clearMatchForm() {
   document.getElementById('f-awayScore').value=0;
   document.getElementById('f-featured').checked=false;
   document.getElementById('f-apkStream').value='';
+  document.getElementById('f-views').value=0;
   document.getElementById('servers-list').innerHTML='';
   toggleScoreFields();
 }
@@ -479,6 +481,7 @@ async function saveMatch() {
     preview,
     apkStream: getValue('f-apkStream'),
     liveTracker: getValue('f-liveTracker'),
+    views: parseInt(document.getElementById('f-views')?.value) || 0,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
@@ -523,6 +526,9 @@ function renderNewsGrid() {
       </div>
       <div class="nac-body">
         <div class="nac-title">${n.title||'Untitled'}</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:4px">
+          👁️ ${(n.views||0).toLocaleString()} views
+        </div>
         <div class="nac-actions">
           <button class="btn btn-sm btn-edit" onclick="openNewsModal('${n.id}')">✏️ Edit</button>
           <button class="btn btn-sm btn-danger" onclick="deleteNews('${n.id}')">🗑 Delete</button>
@@ -538,6 +544,7 @@ function openNewsModal(id=null) {
   document.getElementById('n-category').value='Match Report';
   document.getElementById('n-gradient').value='linear-gradient(135deg,#1a0a2e,#3d195b)';
   document.getElementById('n-publishedAt').value='';
+  document.getElementById('n-views').value=0;
   document.getElementById('thumb-preview').style.display='none';
   setArticleTab('write');
   if (id) {
@@ -552,6 +559,7 @@ function openNewsModal(id=null) {
     if(n.thumbnailUrl){ previewThumb(); }
     document.getElementById('n-gradient').value=n.gradient||'linear-gradient(135deg,#1a0a2e,#3d195b)';
     if (n.publishedAt?.toDate) { const d=n.publishedAt.toDate(); document.getElementById('n-publishedAt').value=d.toISOString().slice(0,16); }
+    document.getElementById('n-views').value=n.views||0;
     setArticleTab(n.content ? 'write' : 'link');
   }
   openModal('news-modal');
@@ -589,7 +597,8 @@ async function saveNews() {
     publishedAt:  pubVal ? firebase.firestore.Timestamp.fromDate(new Date(pubVal)) : firebase.firestore.FieldValue.serverTimestamp(),
     articleType:  isWrite ? 'internal' : 'external',
     content:      isWrite ? document.getElementById('n-content').value.trim() : '',
-    articleUrl:   !isWrite ? document.getElementById('n-articleUrl').value.trim() : ''
+    articleUrl:   !isWrite ? document.getElementById('n-articleUrl').value.trim() : '',
+    views:        parseInt(document.getElementById('n-views').value) || 0
   };
   if (!data.title) { showToast('Title is required','error'); return; }
   try {

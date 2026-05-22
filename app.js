@@ -5,6 +5,7 @@
 ──────────────────────────────────────────────────── */
 let db = null;
 let allMatches = [], allNews = [], allLeagues = [];
+let appSettings = { tablesEnabled: true };
 
 const WIDGET_LEAGUE_MAP = {
   'EPL':39,'PL':39,'LALIGA':140,'BUNDESLIGA':78,
@@ -71,6 +72,24 @@ function listenData() {
     allLeagues = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     reRenderCurrentScreen();
   });
+
+  db.collection('settings').doc('app_config').onSnapshot(doc => {
+    if (doc.exists) {
+      appSettings = doc.data();
+      applySettings();
+    }
+  });
+}
+
+function applySettings() {
+  const tablesNav = document.getElementById('nav-standings');
+  if (appSettings.tablesEnabled === false) {
+    if (tablesNav) tablesNav.style.display = 'none';
+    if (location.hash === '#/standings') location.hash = '#/';
+  } else {
+    if (tablesNav) tablesNav.style.display = 'flex';
+  }
+  reRenderCurrentScreen();
 }
 
 function reRenderCurrentScreen() {
@@ -378,18 +397,16 @@ function renderStandings() {
         </button>
       `).join('')}
     </div>
-    ${leagues.map((l, i) => `
+    ${leagues.map((l, i) => {
+      const dbL = allLeagues.find(al => al.id === l.id) || {};
+      const embed = dbL.embedCode || '';
+      return `
       <div class="standings-panel ${i===0?'active':''}" id="std-panel-${l.id}">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:15px;overflow:hidden;margin:12px">
-          <iframe
-            src="https://www.scoreaxis.com/widget/standings/${l.widgetId}?autoHeight=1&font=Inter&links=0&color=2979ff"
-            style="width:100%;border:none;min-height:500px"
-            loading="lazy"
-            title="${l.name} Standings">
-          </iframe>
+          ${embed || `<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px">No table configured. Add embed code in Admin Panel.</div>`}
         </div>
       </div>
-    `).join('')}
+    `}).join('')}
     <div style="height:20px"></div>
   `;
 }
@@ -481,6 +498,9 @@ function renderMatchDetail(id) {
   el.innerHTML = `
     <!-- Hero -->
     <div class="detail-hero">
+      <button class="share-btn" onclick="shareContent('${m.homeTeam || m.home} vs ${m.awayTeam || m.away}', '#/match/${m.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      </button>
       <div class="detail-hero-glow"></div>
       <div class="dh-league">${LEAGUE_EMOJI[m.leagueId] || '🏆'} ${m.leagueName || m.leagueId}</div>
       <div class="dh-teams">
@@ -534,17 +554,12 @@ function renderMatchDetail(id) {
       <div class="video-container" id="video-container"></div>
     </div>
 
-    <!-- League Table (ScoreAxis) for football -->
-    ${!isCricket ? `
+    <!-- League Table -->
+    ${!isCricket && appSettings.tablesEnabled !== false && (allLeagues.find(l => l.id === m.leagueId)?.embedCode) ? `
     <div class="detail-section">
       <div class="detail-section-title">📊 League Table</div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:15px;overflow:hidden">
-        <iframe
-          src="https://www.scoreaxis.com/widget/standings/${leagueId}?autoHeight=1&font=Inter&links=0&color=2979ff"
-          style="width:100%;border:none;min-height:450px"
-          loading="lazy"
-          title="League Standings">
-        </iframe>
+        ${allLeagues.find(l => l.id === m.leagueId).embedCode}
       </div>
     </div>` : ''}
 
@@ -649,7 +664,12 @@ function renderArticle(id) {
       <div class="article-hero-cat">${n.category || 'News'}</div>
     </div>
     <div class="article-body">
-      <h1 class="article-title">${n.title}</h1>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+        <h1 class="article-title" style="flex:1;">${n.title}</h1>
+        <button class="share-btn-alt" onclick="shareContent('${n.title.replace(/'/g, "\\'")}', '#/article/${n.id}')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        </button>
+      </div>
       ${pubDate ? `<div class="article-meta">📅 ${pubDate}</div>` : ''}
       <div class="article-divider"></div>
       ${n.thumbnailUrl ? `<img src="${n.thumbnailUrl}" class="article-thumbnail" alt="${n.title}">` : ''}
@@ -776,3 +796,34 @@ window.addEventListener('DOMContentLoaded', () => {
   initApp();
   route();
 });
+
+/* ────────────────────────────────────────────────────
+   SHARE API
+──────────────────────────────────────────────────── */
+async function shareContent(title, path) {
+  const url = window.location.origin + window.location.pathname + path;
+  
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: title,
+        text: 'Check this out on ZetaSports!',
+        url: url
+      });
+    } catch (err) {
+      console.log('Error sharing:', err);
+    }
+  } else {
+    // Fallback: Copy to clipboard
+    try {
+      await navigator.clipboard.writeText(url);
+      const toast = document.createElement('div');
+      toast.className = 'toast show';
+      toast.textContent = 'Link copied to clipboard!';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+    }
+  }
+}

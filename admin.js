@@ -643,6 +643,7 @@ function openLeagueModal(id=null) {
   document.getElementById('lg-country').value = '';
   document.getElementById('lg-color').value = '';
   document.getElementById('lg-logo').value = '';
+  document.getElementById('lg-embedCode').value = '';
 
   if (isEdit) {
     const combined = {...{
@@ -661,6 +662,7 @@ function openLeagueModal(id=null) {
       document.getElementById('lg-country').value = l.country || '';
       document.getElementById('lg-color').value = l.color || '';
       document.getElementById('lg-logo').value = l.logo || '';
+      document.getElementById('lg-embedCode').value = l.embedCode || '';
     }
   }
   openModal('league-modal');
@@ -673,7 +675,8 @@ async function saveLeague() {
     name: document.getElementById('lg-name').value.trim(),
     country: document.getElementById('lg-country').value.trim(),
     color: document.getElementById('lg-color').value.trim(),
-    logo: document.getElementById('lg-logo').value.trim()
+    logo: document.getElementById('lg-logo').value.trim(),
+    embedCode: document.getElementById('lg-embedCode').value.trim()
   };
   try {
     await db.collection('leagues').doc(id).set(data, {merge: true});
@@ -1083,6 +1086,8 @@ function renderSettings() {
   document.getElementById('s-privacyUrl').value = appSettings.privacyUrl || '';
   document.getElementById('s-termsUrl').value = appSettings.termsUrl || '';
   document.getElementById('s-copyright').value = appSettings.copyright || '';
+  
+  if (document.getElementById('s-tablesEnabled')) document.getElementById('s-tablesEnabled').checked = appSettings.tablesEnabled !== false;
 
   document.getElementById('s-admobBannerId').value = appSettings.admobBannerId || '';
   document.getElementById('s-admobInterstitialId').value = appSettings.admobInterstitialId || '';
@@ -1155,6 +1160,7 @@ async function saveAppSettings() {
     whatsappUrl: getValue('s-whatsappUrl'),
     telegramUrl: getValue('s-telegramUrl'),
     maintenanceMode: getChecked('s-maintenanceMode'),
+    tablesEnabled: getChecked('s-tablesEnabled'),
     minVersion: getValue('s-minVersion') || '1.1.0',
     updateUrl: getValue('s-updateUrl'),
     supportEmail: getValue('s-supportEmail'),

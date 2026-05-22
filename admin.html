@@ -723,6 +723,11 @@ input:checked + .slider:before{transform:translateX(20px);background:var(--acc)}
         <div class="form-group"><label class="form-label">Color (hex)</label><input class="form-input" id="lg-color" placeholder="#3d195b"/></div>
         <div class="form-group"><label class="form-label">Logo URL</label><input class="form-input" id="lg-logo" placeholder="https://..."/></div>
       </div>
+      <div class="form-group">
+        <label class="form-label">Standings Embed Code (HTML / Iframe)</label>
+        <textarea class="form-input form-textarea" id="lg-embedCode" placeholder="Paste the <iframe...> or <script...> code here for the league table..."></textarea>
+        <div style="font-size:11px; color:var(--text3); margin-top:4px;">If left blank, no table will be shown for this league.</div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-danger" onclick="closeModal('league-modal')">Cancel</button>
